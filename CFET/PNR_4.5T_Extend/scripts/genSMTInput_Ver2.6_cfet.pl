@@ -3555,6 +3555,7 @@ while($isEnd == 0){
 			}
 		}
 	}
+	# .= is concatenation and assign
 	$str.=";Unset All Metal/Net/Wire over the rightmost cell/metal(>COST_SIZE+1)\n";
 # Unset All Metal/Net/Wire over the rightmost cell/metal(>COST_SIZE+1)
 	for my $udeIndex (0 .. $#udEdges) {
