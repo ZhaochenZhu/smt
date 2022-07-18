@@ -28,8 +28,6 @@ foreach my $cell (@StdCells) {
 my @mapTrack = ([1,1], [2,1], [3,1], [4,2], [5,2], [6,3], [7,3]);  # Horizontal Track Mapping
 my @mapNS = ([1,1], [2,2], [3,2]);  # Horizontal Fin Mapping to Nanosheets
 
-# sub = subroutine
-# @_ contains the parameters passed to the subroutine
 sub getTrack{
 	my $track = @_[0];
 	my $nTrack = -1;
@@ -46,8 +44,7 @@ sub getTrack{
 }
 
 sub convertNanoSheet{
-
-	my $nfin = @_[0];	#element at index 0 at array _
+	my $nfin = @_[0];
         my $nNS = 0;
 	my $fin_perFET = 3;
 	my $multiple = int($nfin/$fin_perFET);
@@ -81,7 +78,6 @@ if ($ARGC != 2) {
     $sizeOffset         = $ARGV[1];
 }
 
-# if input file does not exist
 if (!-e "$infile") {
     print "\n*** Error:: FILE DOES NOT EXIST..\n";
     print "***         $infile\n\n";
@@ -132,7 +128,7 @@ open (my $in, "$infile");
 my $outfile     = "$outdir/".(split /\./, (split /\//, $infile)[$#_])[0].".pinLayout";
 while (<$in>) {
     my $line = $_;
-    chomp($line);	# remove the last trailing newline from the input string
+    chomp($line);
 
     ### Status of Input File
     if ($line =~ /\.SUBCKT (\S+)/) {
@@ -157,7 +153,7 @@ while (<$in>) {
 		$sizePMOS = 0;
 
 		$designName = $1;
-		print $designName;		# Print all netlist cell name
+		print $designName;
 		for my $cell (@StdCells) {
 			if ($designName eq $cell) {
 				print "a     Cell Design Name :    $designName\n";

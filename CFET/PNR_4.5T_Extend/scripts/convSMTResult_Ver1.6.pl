@@ -22,24 +22,24 @@ my $cellname	= "";
 my $lefgen_inputdir = "";
 
 if ($ARGC != 3) {
-	print "\n*** Error:: Wrong CMD";
-	print "\n   [USAGE]: ./PL_FILE [inputfile_result] [org_cell_name]\n\n";
-	exit(-1);
+    print "\n*** Error:: Wrong CMD";
+    print "\n   [USAGE]: ./PL_FILE [inputfile_result] [org_cell_name]\n\n";
+    exit(-1);
 } else {
-	$infile             = $ARGV[0];
-	$cellname			= $ARGV[1];
-	$lefgen_inputdir            = $ARGV[2];
+    $infile             = $ARGV[0];
+    $cellname			= $ARGV[1];
+    $lefgen_inputdir            = $ARGV[2];
 }
 
 if (!-e "./$infile") {
-	print "\n*** Error:: FILE DOES NOT EXIST..\n";
-	print "***         $workdir/$infile\n\n";
-	exit(-1);
+    print "\n*** Error:: FILE DOES NOT EXIST..\n";
+    print "***         $workdir/$infile\n\n";
+    exit(-1);
 }
 if (!-e "$pinLayoutdir/$cellname.pinLayout") {
-	print "\n*** Error:: PinLayout FILE DOES NOT EXIST..\n";
-	print "***         $pinLayoutdir/$cellname.pinLayout\n\n";
-	exit(-1);
+    print "\n*** Error:: PinLayout FILE DOES NOT EXIST..\n";
+    print "***         $pinLayoutdir/$cellname.pinLayout\n\n";
+    exit(-1);
 }
 
 ### Output Directory Creation, please see the following reference:
@@ -94,23 +94,23 @@ my $numTrackHPerClip = 0;
 my $numRoutingClip = 0;
 open (my $in, "$pinLayoutdir/$cellname.pinLayout");
 while (<$in>) {
-	my $line = $_;
-	chomp($line);
+    my $line = $_;
+    chomp($line);
 
-	if ($line =~ /^i.*pin.*net(\d+) ext (\S+) t -1 (\S+)/) {
+    if ($line =~ /^i.*pin.*net(\d+) ext (\S+) t -1 (\S+)/) {
 		my $netID = $1;
 		my $pinName = $2;
 		my $pinType = $3;
 		$h_extpinname{$1}=$2;
 		$h_extpintype{$1}=$3;
 	}
-	if ($line =~ /^a.*Height of Routing Clip.*= (\S+)/) {
+    if ($line =~ /^a.*Height of Routing Clip.*= (\S+)/) {
 		$numRoutingClip = $1;
 	}
-	if ($line =~ /^a.*Width of Routing Clip.*= (\S+)/) {
+    if ($line =~ /^a.*Width of Routing Clip.*= (\S+)/) {
 		$numTrackV = $1;
 	}
-	if ($line =~ /^a.*Tracks per Placement Row.*= (\S+)/) {
+    if ($line =~ /^a.*Tracks per Placement Row.*= (\S+)/) {
 		$numTrackHPerClip = $1;
 	}
 }
@@ -120,8 +120,8 @@ $numTrackH = $numRoutingClip * $numTrackHPerClip - 2;
 ### Read Inputfile and Build Data Structure
 open (my $in, "./$infile");
 while (<$in>) {
-	my $line = $_;
-	chomp($line);
+    my $line = $_;
+    chomp($line);
 
 	if ($line =~ /^sat/){
 		if($isFirst == 1){
@@ -153,8 +153,8 @@ while (<$in>) {
 		}
 	}
 
-	### Instance
-	if ($line =~ /^.*\(define-fun x(\d+)/) {
+    ### Instance
+    if ($line =~ /^.*\(define-fun x(\d+)/) {
 		my $tmp = $1;
 		$line = <$in>;
 		chomp($line);
@@ -175,8 +175,8 @@ while (<$in>) {
 			$h_inst{$tmp} = $idx_inst;
 			$idx_inst++;
 		}
-	} 
-	elsif ($line =~ /^.*\(define-fun y(\d+)/) {
+    } 
+    elsif ($line =~ /^.*\(define-fun y(\d+)/) {
 		my $tmp = $1;
 		$line = <$in>;
 		chomp($line);
@@ -197,8 +197,8 @@ while (<$in>) {
 			$h_inst{$tmp} = $idx_inst;
 			$idx_inst++;
 		}
-	} 
-	elsif ($line =~ /^.*\(define-fun nf(\d+)/) {
+    } 
+    elsif ($line =~ /^.*\(define-fun nf(\d+)/) {
 		my $tmp = $1;
 		$line = <$in>;
 		chomp($line);
@@ -213,8 +213,8 @@ while (<$in>) {
 			$h_inst{$tmp} = $idx_inst;
 			$idx_inst++;
 		}
-	} 
-	elsif ($line =~ /^.*\(define-fun ff(\d+)/) {
+    } 
+    elsif ($line =~ /^.*\(define-fun ff(\d+)/) {
 		my $tmp = $1;
 		$line = <$in>;
 		chomp($line);
@@ -229,8 +229,8 @@ while (<$in>) {
 			$h_inst{$tmp} = $idx_inst;
 			$idx_inst++;
 		}
-	} 
-	elsif ($line =~ /^.*\(define-fun w(\d+)/) {
+    } 
+    elsif ($line =~ /^.*\(define-fun w(\d+)/) {
 		my $tmp = $1;
 		$line = <$in>;
 		chomp($line);
@@ -251,8 +251,8 @@ while (<$in>) {
 			$h_inst{$tmp} = $idx_inst;
 			$idx_inst++;
 		}
-	} 
-	elsif ($line =~ /^.*\(define-fun uw(\d+)/) {
+    } 
+    elsif ($line =~ /^.*\(define-fun uw(\d+)/) {
 		my $tmp = $1;
 		$line = <$in>;
 		chomp($line);
@@ -273,9 +273,9 @@ while (<$in>) {
 			$h_inst{$tmp} = $idx_inst;
 			$idx_inst++;
 		}
-	} 
-	### Metal
-	if ($line =~ /^.*\(define-fun M_m(\d+)r(\d+)c(\d+)_m(\d+)r(\d+)c(\d+)/) {
+    } 
+    ### Metal
+    if ($line =~ /^.*\(define-fun M_m(\d+)r(\d+)c(\d+)_m(\d+)r(\d+)c(\d+)/) {
 		my $fromM = $1;
 		my $toM = $4;
 		my $fromR = $2;
@@ -313,9 +313,9 @@ while (<$in>) {
 #print "VIA $fromM $toM $fromR $fromC\n";
 			}
 		}
-	} 
-	### Wire
-	if ($line =~ /^.*\(define-fun N(\S+)_C(\S+)_E_m(\d+)r(\d+)c(\d+)_m(\d+)r(\d+)c(\d+)/) {
+    } 
+    ### Wire
+    if ($line =~ /^.*\(define-fun N(\S+)_C(\S+)_E_m(\d+)r(\d+)c(\d+)_m(\d+)r(\d+)c(\d+)/) {
 		my $fromM = $3;
 		my $toM = $6;
 		my $fromR = $4;
@@ -356,9 +356,9 @@ while (<$in>) {
 				$h_wire{$fromM."_".$toM."_".$fromR."_".$fromC."_".$toR."_".$toC} = 1;
 			}
 		}
-	} 
-	### Net
-	if ($line =~ /^.*\(define-fun N(\S+)_E_m(\d+)r(\d+)c(\d+)_m(\d+)r(\d+)c(\d+)/) {
+    } 
+    ### Net
+    if ($line =~ /^.*\(define-fun N(\S+)_E_m(\d+)r(\d+)c(\d+)_m(\d+)r(\d+)c(\d+)/) {
 		my $netID = $1;
 		my $fromM = $2;
 		my $toM = $5;
@@ -382,9 +382,9 @@ while (<$in>) {
 				$h_net{$toM."_".$fromM."_".$fromR."_".$fromC."_".$toR."_".$toC} = $netID;
 			}
 		}
-	} 
-	### Pin
-	if ($line =~ /^.*\(define-fun M_.*(pin[a-zA-Z0-9_]+)_r(\d+)c(\d+)/) {
+    } 
+    ### Pin
+    if ($line =~ /^.*\(define-fun M_.*(pin[a-zA-Z0-9_]+)_r(\d+)c(\d+)/) {
 		my $pinName = $1;
 		my $row = $2;
 		my $col = $3;
@@ -411,7 +411,7 @@ while (<$in>) {
 		$line =~ s/^\s+(\S+)\)/$1/g;
 		$line = $line eq "true"?1:0;
 		if($line == 1){
-				
+			    
 #if(!exists($h_pin{$pinName})){
 				#@pin = [pinName, row, col]
 				push(@pin, [($pinName, $row, $col)]);
@@ -419,7 +419,7 @@ while (<$in>) {
 #}
 		}
 	}
-	### ExtPin
+    ### ExtPin
 	if ($line =~ /^.*\(define-fun N(\d+)_E_m(\d+)r(\d+)c(\d+)_pinSON/) {
 		my $net = $1;
 		my $metal = $2;
@@ -438,8 +438,8 @@ while (<$in>) {
 			}
 		}
 	}
-	### Cost
-	if ($line =~ /^.*\(define-fun COST_SIZE /) {
+    ### Cost
+    if ($line =~ /^.*\(define-fun COST_SIZE /) {
 		$line = <$in>;
 		chomp($line);
 		if($line =~ /^\s+#x(\S+)\)/){
@@ -454,14 +454,14 @@ while (<$in>) {
 			$cost_placement = $line + 2;
 		}
 	}
-	if ($line =~ /^.*\(define-fun cost_ML/) {
+    if ($line =~ /^.*\(define-fun cost_ML/) {
 		$line = <$in>;
 		chomp($line);
 		$line =~ s/^\s+(\d+)\)/$1/g;
 		$cost_ml = $line;
 	}
-	### M2 Track
-	if ($line =~ /^.*\(define-fun M2_TRACK_(\d+)/) {
+    ### M2 Track
+    if ($line =~ /^.*\(define-fun M2_TRACK_(\d+)/) {
 		my $row = $1;
 
 		$line = <$in>;
