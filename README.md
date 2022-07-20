@@ -8,7 +8,7 @@
 -	Copy this folder to $workdir and change the name to ./pinLayouts_cfet, this will be used in the .z3 conversion
 
 # Step 2
--	RUN COMMAND: 
+-	RUN COMMAND: $workdir/scripts/genSMTInput_Ver2.6_cfet.pl ./pinLayouts_cfet_v2.1/NAND2x1_ASAP7_75t_R.pinLayout 0 1 0 1 1 1 1 2 3 4 1 2 1 0 0 1 1 1 2
 -	Now you may find the .smt2 file under ./inputsSMT_cfet, you are ready to use Z3 solver
 -	Install Z3 solver following *https://pypi.org/project/z3-solver/*
 
