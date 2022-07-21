@@ -395,10 +395,8 @@ while (<$in>) {
             print "a     # Vertical Placement Tracks   = $numPTrackV\n";
         }
         elsif ($line =~ /Tracks per Placement Clip\s*= (\d+)/) {
-            '''
-				trackEachPRow = Tracks per Placement Clip = numPTrackH = 2 nanosheets per FET
-			'''
-			#$numPTrackH = $1*2;
+			# trackEachPRow = Tracks per Placement Clip = numPTrackH = 2 nanosheets per FET
+			# $numPTrackH = $1*2;
 	        $numPTrackH = $1; # CFET
 			$trackEachPRow = $1; # ???
             print "a     # Horizontal Placement Tracks = $numPTrackH\n";
@@ -786,9 +784,9 @@ my $vFR = "";
 my $vBL = "";
 my $vBR = "";
 
-"""
+=begin
 YW: GEAR RATIO
-"""
+=cut
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 for my $metal (1 .. $numMetalLayer) { 
@@ -881,9 +879,9 @@ my $vCost_34 = 4;
 my $mCost_4 = 1;
 my $wCost = 1;
 
-"""
+=begin
 YW: GEAR RATIO
-"""
+=cut
 ### DATA STRUCTURE:  UNDIRECTED_EDGE [index] [Term1] [Term2] [mCost] [wCost]
 for my $metal (1 .. $numMetalLayer) {     # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
     for my $row (0 .. $numTrackH-3) {
@@ -1074,9 +1072,9 @@ my @backCorners = ();
 my $numBackCorners = 0;
 my $cornerVertex = "";
 
-"""
+=begin
 YW: GEAR RATIO
-"""
+=cut
 for my $metal (1 .. $numMetalLayer) { # At the top-most metal layer, only vias exist.
     for my $row (0 .. $numTrackH-3) {
         for my $col (0 .. $numTrackV-1) {
@@ -4371,7 +4369,8 @@ $str.="; 2.2.9 More space between two net is favorable to improve pin accesibili
 if ($PE1_newflag == 0) {
 for my $col (0 .. $numTrackV-1){
 	my $valid = 0;
-	my $len = length(sprintf("%b", $numTrackV))+4; an unsigned integer, in binary # numTrackV in bit length + 4?
+	# numTrackV in bit length + 4?
+	my $len = length(sprintf("%b", $numTrackV))+4; #an unsigned integer, in binary 
 	#my $tmp_str="(assert (ite (and (bvsge COST_SIZE (_ bv".$col." $len)) (or ";
 	#my $tmp_str="(assert (ite (bvsge COST_SIZE (_ bv".$col." $len)) (ite (and (or ";
 	my $tmp_str="(assert (ite (and (or ";
@@ -10675,9 +10674,9 @@ for my $col (0 .. $numTrackV-1){
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 		$str.=";8-D. from Front Tip to Back Tips for each vertex\n";
-		"""
+=begin
 		YW: GEAR RATIO
-		"""
+=cut
 		for my $metal (1 .. $numMetalLayer) { # no DR on M1
 			if ($metal % 2 == 1) {
 				for my $row (1 .. $numTrackH-3) {
@@ -10932,9 +10931,9 @@ for my $col (0 .. $numTrackV-1){
 ### ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 		my $maxDistRow = $numTrackH-1;
 		my $maxDistCol = $numTrackV-1;
-		"""
+=begin
 		YW: GEAR RATIO
-		"""
+=cut
 		for my $metal (1 .. $numMetalLayer) { # no DR on M1
 		#for my $metal (1 .. 1) { # no DR on M1
 			if($metal == 1){
