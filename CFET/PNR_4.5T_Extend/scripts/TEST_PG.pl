@@ -16,3 +16,8 @@ my @a = (1,2,3,4,5,6,7);
 my @b = sub { @_[1..$#_] }->(@ARGV);
 
 print Dumper \@ARGV;
+my $numTrackV =12;
+
+my $len = length(sprintf("%b", $numTrackV))+4;
+print(length(sprintf("%b", $numTrackV)), "\n");
+print($len, "\n");

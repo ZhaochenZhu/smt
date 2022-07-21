@@ -259,6 +259,7 @@ my $numPowerNmos = 0;
 my @inst_group = ();
 my %h_inst_group = ();
 my @h_inst_group = ();
+my @inst_group_p = ();
 my @inst_group_n = ();
 
 ### Power Net/Pin Info
@@ -373,13 +374,13 @@ while (<$in>) {
             print "a     # Vertical Tracks   = $numTrackV\n";
         }
         elsif ($line =~ /Height of Routing Clip\s*= (\d+)/) {
-			'''
+=begin
 				Level of abstraction: Clip (where to form a p/n junction), Row (where to put stacking PFET/NFET)
 				placementRow = Height of Routing Clip = numClip
 				Abstract to min rows to form a p/n junction
 				CFET stacks pnFET, so min rows to form p/n junction is 1
 				FinFET lays p/nFET side-by-side, so min rows to form p/n junction is 2
-			'''
+=cut
             $placementRow = $1; # why is this placement row???
         }
         elsif ($line =~ /Tracks per Placement Row\s*= (\d+)/) {
@@ -4370,7 +4371,7 @@ $str.="; 2.2.9 More space between two net is favorable to improve pin accesibili
 if ($PE1_newflag == 0) {
 for my $col (0 .. $numTrackV-1){
 	my $valid = 0;
-	my $len = length(sprintf("%b", $numTrackV))+4;
+	my $len = length(sprintf("%b", $numTrackV))+4; an unsigned integer, in binary # numTrackV in bit length + 4?
 	#my $tmp_str="(assert (ite (and (bvsge COST_SIZE (_ bv".$col." $len)) (or ";
 	#my $tmp_str="(assert (ite (bvsge COST_SIZE (_ bv".$col." $len)) (ite (and (or ";
 	my $tmp_str="(assert (ite (and (or ";
