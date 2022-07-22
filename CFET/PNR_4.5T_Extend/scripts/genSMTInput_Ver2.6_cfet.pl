@@ -3,7 +3,7 @@
 use strict 'vars'; # generates a compile-time error if you access a variable without declaration
 use strict 'refs'; # generates a runtime error if you use symbolic references
 use strict 'subs'; # compile-time error if you try to use a bareword identifier in an improper way.
-use Data::Dumper;
+
 use POSIX;
 
 use Cwd;
@@ -49,7 +49,7 @@ my $outdir      = "$workdir/inputsSMT_cfet";
 my $infile      = "";
 
 my $BoundaryCondition = 0; # ARGV[1], 0: Fixed, 1: Extensible
-my $SON = 0;               # ARGV[2], 0: Disable, 1: Enable
+my $SON = 0;               # ARGV[2], 0: Disable, 1: Enable # [SON Mode] Super Outer Node Simplifying
 my $DoublePowerRail = 0;   # ARGV[3], 0: Disable, 1: Enable
 my $MAR_Parameter = 0;     # ARGV[4], 2: (Default), Integer
 my $EOL_Parameter = 1;     # ARGV[5], 2: (Default), Integer
@@ -100,74 +100,74 @@ for my $i(0 .. $#numContact){
 }
 
 if ($ARGC != 20) {
-    print "\n*** Error:: Wrong CMD";
-    print "\n   [USAGE]: ./PL_FILE [inputfile_pinLayout] [Boundary, 0: Fixed] [SON, 0: Disable] [Double Power Rail, 0: Disable] [MAR, 2(D)] [EOL, 2(D)] [VR, sqrt(2)(D)] [PRL, 1(D)], [SHR, 2(D)], [MPL, 2(D)], [MM, 3(D)], [LOCAL, 0(D)], [PART, 0(D)], [BCP, 1(D)], [NDE, 0(D)], [BS, 0(D)], [PS, 1(D)], [M2Track, 1[D]], [M2Min, 1[D]], [Dint, 2[D]]\n\n";
-    exit(-1);
+	print "\n*** Error:: Wrong CMD";
+	print "\n   [USAGE]: ./PL_FILE [inputfile_pinLayout] [Boundary, 0: Fixed] [SON, 0: Disable] [Double Power Rail, 0: Disable] [MAR, 2(D)] [EOL, 2(D)] [VR, sqrt(2)(D)] [PRL, 1(D)], [SHR, 2(D)], [MPL, 2(D)], [MM, 3(D)], [LOCAL, 0(D)], [PART, 0(D)], [BCP, 1(D)], [NDE, 0(D)], [BS, 0(D)], [PS, 1(D)], [M2Track, 1[D]], [M2Min, 1[D]], [Dint, 2[D]]\n\n";
+	exit(-1);
 } else {
-    $infile             = $ARGV[0];
-    $BoundaryCondition  = $ARGV[1];
-    $SON                = $ARGV[2];
-    $DoublePowerRail    = $ARGV[3];
-    $MAR_Parameter      = $ARGV[4];
-    $EOL_Parameter      = $ARGV[5];
-    $VR_Parameter       = $ARGV[6];
-    $PRL_Parameter      = $ARGV[7];
-    $SHR_Parameter      = $ARGV[8];
-    $MPL_Parameter       = $ARGV[9];
-    $MM_Parameter       = $ARGV[10];
-    $Local_Parameter       = $ARGV[11];
-    $Partition_Parameter       = $ARGV[12];
-    $BCP_Parameter       = $ARGV[13];
-    $NDE_Parameter       = $ARGV[14];
-    $BS_Parameter       = $ARGV[15];
-    $PE_Parameter = $ARGV[16];
-    $M2_TRACK_Parameter = $ARGV[17];
-    $M2_Length_Parameter = $ARGV[18];
-    $dint = $ARGV[19];
- 
-    if ($MAR_Parameter == 0){
-        print "\n*** Disable MAR (When Parameter == 0) ***\n";
-    }
-    if ($EOL_Parameter == 0){
-        print "\n*** Disable EOL (When Parameter == 0) ***\n";
-    }     
-    if ( $VR_Parameter == 0){
-        print "\n*** Disable VR (When Parameter == 0) ***\n";
-    }
-    if ( $PRL_Parameter == 0){
-        print "\n*** Disable PRL (When Parameter == 0) ***\n";
-    }
-    if ( $SHR_Parameter < 2){
-        print "\n*** Disable SHR (When Parameter <= 1) ***\n";
-    }
+	$infile             = $ARGV[0];
+	$BoundaryCondition  = $ARGV[1];
+	$SON                = $ARGV[2];
+	$DoublePowerRail    = $ARGV[3];
+	$MAR_Parameter      = $ARGV[4];
+	$EOL_Parameter      = $ARGV[5];
+	$VR_Parameter       = $ARGV[6];
+	$PRL_Parameter      = $ARGV[7];
+	$SHR_Parameter      = $ARGV[8];
+	$MPL_Parameter       = $ARGV[9];
+	$MM_Parameter       = $ARGV[10];
+	$Local_Parameter       = $ARGV[11];
+	$Partition_Parameter       = $ARGV[12];
+	$BCP_Parameter       = $ARGV[13];
+	$NDE_Parameter       = $ARGV[14];
+	$BS_Parameter       = $ARGV[15];
+	$PE_Parameter = $ARGV[16];
+	$M2_TRACK_Parameter = $ARGV[17];
+	$M2_Length_Parameter = $ARGV[18];
+	$dint = $ARGV[19];
+
+	if ($MAR_Parameter == 0){
+		print "\n*** Disable MAR (When Parameter == 0) ***\n";
+	}
+	if ($EOL_Parameter == 0){
+		print "\n*** Disable EOL (When Parameter == 0) ***\n";
+	}     
+	if ( $VR_Parameter == 0){
+		print "\n*** Disable VR (When Parameter == 0) ***\n";
+	}
+	if ( $PRL_Parameter == 0){
+		print "\n*** Disable PRL (When Parameter == 0) ***\n";
+	}
+	if ( $SHR_Parameter < 2){
+		print "\n*** Disable SHR (When Parameter <= 1) ***\n";
+	}
 }
 
 if (!-e "./$infile") {
-    print "\n*** Error:: FILE DOES NOT EXIST..\n";
-    print "***         $workdir/$infile\n\n";
-    exit(-1);
+	print "\n*** Error:: FILE DOES NOT EXIST..\n";
+	print "***         $workdir/$infile\n\n";
+	exit(-1);
 } else {
-    print "\n";
-    print "a   Version Info : 1.0 Initial Version\n";
-    print "a				: 1.1 Bug Fix\n";
-    print "a				: 1.3 BV, Bool Employed\n";
-    print "a				: 1.4 Bug Fix, Performance Tuning\n";
-    print "a				: 1.5 Added SHR, Removed Redundancy in Placement constraints\n";
-    print "a				: 1.8 Performance Tuning\n";
-    print "a				: 1.9 S/D, Gate Coordinate Change\n";
-    print "a				: 2.0 Merged/Removed Capacity Variables\n";
-    print "a				: 2.1 Unit Propagation\n";
-    print "a				: 2.2 Pin Accessibility Modification\n";
-    print "a				: 2.2.5.1 Dummy Structure support and Sink to Sink (Multifingers) Shared Structure\n";
-    print "a				: 2.2.5.6 Integrate ver 2.4\n";
+	print "\n";
+	print "a   Version Info : 1.0 Initial Version\n";
+	print "a				: 1.1 Bug Fix\n";
+	print "a				: 1.3 BV, Bool Employed\n";
+	print "a				: 1.4 Bug Fix, Performance Tuning\n";
+	print "a				: 1.5 Added SHR, Removed Redundancy in Placement constraints\n";
+	print "a				: 1.8 Performance Tuning\n";
+	print "a				: 1.9 S/D, Gate Coordinate Change\n";
+	print "a				: 2.0 Merged/Removed Capacity Variables\n";
+	print "a				: 2.1 Unit Propagation\n";
+	print "a				: 2.2 Pin Accessibility Modification\n";
+	print "a				: 2.2.5.1 Dummy Structure support and Sink to Sink (Multifingers) Shared Structure\n";
+	print "a				: 2.2.5.6 Integrate ver 2.4\n";
 
-    print "a        Design Rule Parameters : [MAR = $MAR_Parameter , EOL = $EOL_Parameter, VR = $VR_Parameter, PRL = $PRL_Parameter, SHR = $SHR_Parameter]\n";
-    print "a        Parameter Options : [Boundary = $BoundaryCondition], [SON = $SON], [Double Power Rail = $DoublePowerRail], [MPL = $MPL_Parameter], [Maximum Metal Layer = $MM_Parameter], [Localization = $Local_Parameter]\n";
+	print "a        Design Rule Parameters : [MAR = $MAR_Parameter , EOL = $EOL_Parameter, VR = $VR_Parameter, PRL = $PRL_Parameter, SHR = $SHR_Parameter]\n";
+	print "a        Parameter Options : [Boundary = $BoundaryCondition], [SON = $SON], [Double Power Rail = $DoublePowerRail], [MPL = $MPL_Parameter], [Maximum Metal Layer = $MM_Parameter], [Localization = $Local_Parameter]\n";
 	print "a	                        [Partitioning = $Partition_Parameter], [BCP = $BCP_Parameter], [NDE = $NDE_Parameter], [BS = $BS_Parameter], [PS = $PE_Parameter], [M2Track = $M2_TRACK_Parameter]\n";
 	print "a	                        [M2Length = $M2_Length_Parameter], [Dint = $dint], [Stack = $stack_struct_flag], [DVsamenet = $VR_double_samenet_flag], [Stackvia = $VR_stacked_via_flag]\n\n";
 
-    print "a   Generating SMT-LIB 2.0 Standard inputfile based on the following files.\n";
-    print "a     Input Layout:  $workdir/$infile\n";
+	print "a   Generating SMT-LIB 2.0 Standard inputfile based on the following files.\n";
+	print "a     Input Layout:  $workdir/$infile\n";
 }
 
 ### Output Directory Creation, please see the following reference:
@@ -184,26 +184,26 @@ my $enc_euv_1 = 40;
 my $enc_euv_2 = 40;
 
 ### Variable Declarations
-my $width = 0;
-my $placementRow = 0;
-my $trackEachRow = 0;
-my $trackEachPRow = 0;
-my $numTrackH = 0;
-my $numTrackV = 0;
-my $numMetalLayer = $MM_Parameter;      # M1~M4
-my $numPTrackH = 0;
-my $numPTrackV = 0;
+my $width = 0;						# arbitrary 
+my $placementRow = 0;				# number of placement row at active layer ?
+my $trackEachRow = 0;				# Tracks per Placement Row
+my $trackEachPRow = 0;				# Tracks per Placement Clip
+my $numTrackH = 0;					# $placementRow * $trackEachRow
+my $numTrackV = 0;					# Width of Routing Clip
+my $numMetalLayer = $MM_Parameter;  # M1~M4
+my $numPTrackH = 0;					# Tracks per Placement Clip
+my $numPTrackV = 0;					# Width of Placement Clip
 my $tolerance = 5; #default
 #my $tolerance = 55; #default
 #my $tolerance = 20;
-my $tolerance_adj_sameregion = 5;
+my $tolerance_adj_sameregion = 5;	# not used ???
 #my $tolerance_adj_sameregion = 15;
 #my $tolerance_adj_diffregion = 1;
 
 ### PIN variables
-my @pins = ();
-my @pin = ();
-my $pinName = "";
+my @pins = ();						# list of pin: push (@pins, [@pin]);
+my @pin = ();						# pin information @pin = ($pinName, $pin_netID, $pinIO, $pinLength, $pinXpos, [@pinYpos], $pin_instID, $pin_type);
+my $pinName = "";					
 my $pin_netID = ""; 
 my $pin_instID = "";			
 my $pin_type = "";		
@@ -213,8 +213,8 @@ my $pinXpos = -1;
 my @pinYpos = ();
 my $pinLength = -1;
 my $pinStart = -1;
-my $totalPins = -1;
-my $pinIDX = 0;
+my $totalPins = -1;					# length of @pins
+my $pinIDX = 0;						
 my $pinTotalIDX = 0;
 my %h_pin_id = ();
 my %h_pin_idx = ();
@@ -252,13 +252,12 @@ my $lastIdxPMOS = -1;
 my %h_inst_idx = ();
 my @numFinger = ();
 my $minWidth = 0;
-my @DDA_PMOS = ();
-my @DDA_NMOS = ();
-my $numPowerPmos = 0;
-my $numPowerNmos = 0;
-my @inst_group = ();
+my @DDA_PMOS = ();			# DDA = (instanceID, FlipFlag)
+my @DDA_NMOS = ();			# DDA = (instanceID, FlipFlag)
+my $numPowerPmos = 0;		# = $lastIdxPMOS
+my $numPowerNmos = 0;		# = $lastIdxPMOS (NMOS)
+my @inst_group = ();		# list of [($instName, $instType, $instGroup)]
 my %h_inst_group = ();
-my @h_inst_group = ();
 my @inst_group_p = ();
 my @inst_group_n = ();
 
@@ -329,15 +328,15 @@ my $infileStatus = "init";
 ### Read Inputfile and Build Data Structure
 open (my $in, "./$infile");
 while (<$in>) {
-    my $line = $_;
-    chomp($line);
+	my $line = $_;
+	chomp($line);
 
-    ### Status of Input File
-    if ($line =~ /===InstanceInfo===/) {
-        $infileStatus = "inst";
-    } 
-    elsif ($line =~ /===NetInfo===/) {
-        $infileStatus = "net";
+	### Status of Input File
+	if ($line =~ /===InstanceInfo===/) {
+		$infileStatus = "inst";
+	} 
+	elsif ($line =~ /===NetInfo===/) {
+		$infileStatus = "net";
 		for(my $i=0; $i<=$#pins; $i++){
 #print "$i $pins[$i][0] $pins[$i][1] $pins[$i][2] $pins[$i][7]\n";
 			if(exists($h_pin_net{$pins[$i][1]})){
@@ -352,60 +351,51 @@ while (<$in>) {
 				$h_pin_net{$pins[$i][1]} = $pins[$i][0];
 			}
 		}
-    }
-    elsif ($line =~ /===PinInfo===/) {
-        $infileStatus = "pin";
-    }
-    elsif ($line =~ /===PartitionInfo===/) {
-        $infileStatus = "partition";
-    }
-    elsif ($line =~ /===M2TrackAssignInfo===/) {
-        $infileStatus = "track";
-    }
-    elsif ($line =~ /===NetOptInfo===/) {
-        $infileStatus = "netopt";
-    }
+	}
+	elsif ($line =~ /===PinInfo===/) {
+		$infileStatus = "pin";
+	}
+	elsif ($line =~ /===PartitionInfo===/) {
+		$infileStatus = "partition";
+	}
+	elsif ($line =~ /===M2TrackAssignInfo===/) {
+		$infileStatus = "track";
+	}
+	elsif ($line =~ /===NetOptInfo===/) {
+		$infileStatus = "netopt";
+	}
 
-    ### Infile Status: init
-    if ($infileStatus eq "init") {
-        if ($line =~ /Width of Routing Clip\s*= (\d+)/) {
-            $width = $1;
-            $numTrackV = $width;
-            print "a     # Vertical Tracks   = $numTrackV\n";
-        }
-        elsif ($line =~ /Height of Routing Clip\s*= (\d+)/) {
-=begin
-				Level of abstraction: Clip (where to form a p/n junction), Row (where to put stacking PFET/NFET)
-				placementRow = Height of Routing Clip = numClip
-				Abstract to min rows to form a p/n junction
-				CFET stacks pnFET, so min rows to form p/n junction is 1
-				FinFET lays p/nFET side-by-side, so min rows to form p/n junction is 2
-=cut
-            $placementRow = $1; # why is this placement row???
-        }
-        elsif ($line =~ /Tracks per Placement Row\s*= (\d+)/) {
-			# trackEachRow = Tracks per Placement Row = numTrackH = # 4 routing tracks; 2 power/ground tracks
-            $trackEachRow = $1;
-            $numTrackH = $placementRow * $trackEachRow;
-            print "a     # Horizontal Tracks = $numTrackH\n";
-        }
-        elsif ($line =~ /Width of Placement Clip\s*= (\d+)/) {
-            $width = $1;
-            $numPTrackV = $width;
-            print "a     # Vertical Placement Tracks   = $numPTrackV\n";
-        }
-        elsif ($line =~ /Tracks per Placement Clip\s*= (\d+)/) {
-			# trackEachPRow = Tracks per Placement Clip = numPTrackH = 2 nanosheets per FET
-			# $numPTrackH = $1*2;
-	        $numPTrackH = $1; # CFET
-			$trackEachPRow = $1; # ???
-            print "a     # Horizontal Placement Tracks = $numPTrackH\n";
-        }
-    }
+	### Infile Status: init
+	if ($infileStatus eq "init") {
+		if ($line =~ /Width of Routing Clip\s*= (\d+)/) {
+			$width = $1;
+			$numTrackV = $width;
+			print "a     # Vertical Tracks   = $numTrackV\n";
+		}
+		elsif ($line =~ /Height of Routing Clip\s*= (\d+)/) {
+			$placementRow = $1;
+		}
+		elsif ($line =~ /Tracks per Placement Row\s*= (\d+)/) {
+			$trackEachRow = $1;
+			$numTrackH = $placementRow * $trackEachRow;
+			print "a     # Horizontal Tracks = $numTrackH\n";
+		}
+		elsif ($line =~ /Width of Placement Clip\s*= (\d+)/) {
+			$width = $1;
+			$numPTrackV = $width;
+			print "a     # Vertical Placement Tracks   = $numPTrackV\n";
+		}
+		elsif ($line =~ /Tracks per Placement Clip\s*= (\d+)/) {
+			#$numPTrackH = $1*2;
+			$numPTrackH = $1; # CFET
+			$trackEachPRow = $1;
+			print "a     # Horizontal Placement Tracks = $numPTrackH\n";
+		}
+	}
 
-    ### Infile Status: Instance Info
-    if ($infileStatus eq "inst") {
-        if ($line =~ /^i   ins(\S+)\s*(\S+)\s*(\d+)/) {	
+	### Infile Status: Instance Info
+	if ($infileStatus eq "inst") {
+		if ($line =~ /^i   ins(\S+)\s*(\S+)\s*(\d+)/) {	
 			$instName = "ins".$1;
 			$instType = $2;
 			$instWidth = $3;
@@ -445,20 +435,20 @@ while (<$in>) {
 			$h_inst_idx{$instName} = $numInstance;
 			$numInstance++;
 		}
-    }
+	}
 
-    ### Infile Status: pin
-    if ($infileStatus eq "pin") {
+	### Infile Status: pin
+	if ($infileStatus eq "pin") {
 		if ($line =~ /^i   pin(\d+)\s*net(\d+)\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)/) {
 			$pin_type_IO = $7;
 		}
 		if ($line =~ /^i   pin(\d+)\s*net(\d+)\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)/) {
-            $pinName = "pin".$1;
-            $pin_netID = "net".$2; 
+			$pinName = "pin".$1;
+			$pin_netID = "net".$2; 
 			$pin_instID = $3;
 			$pin_type = $4;
-            $pinIO = $5;
-            $pinLength = $6;
+			$pinIO = $5;
+			$pinLength = $6;
 			my @tmp_finger = ();
 			@tmp_finger = getAvailableNumFinger($inst[$h_inst_idx{$pin_instID}][2], $trackEachPRow);
 			if($pin_instID ne "ext" && $pin_type eq "S"){
@@ -509,20 +499,15 @@ while (<$in>) {
 				}	
 			} 
 			$h_pin_id{$pin_instID."_".$pin_type} = $2;
-        }
-    }
+		}
+	}
 
-    ### Infile Status: net
-    if ($infileStatus eq "net") {
-        if ($line =~ /^i   net(\S+)\s*(\d+)PinNet/) {
+	### Infile Status: net
+	if ($infileStatus eq "net") {
+		if ($line =~ /^i   net(\S+)\s*(\d+)PinNet/) {
 			$numNets_org++;
-            $netID = $1;
-            $netName = "net".$netID;
-
-			print("Reading: ", $netID, " ", $netName, "\n");
-            print Dumper(\%h_pin_net);
-			exit;
-
+			$netID = $1;
+			$netName = "net".$netID;
 			my $powerinNet = 0;
 			my $powerNet = "";
 			if(exists($h_pin_net{$netName})){
@@ -533,7 +518,7 @@ while (<$in>) {
 				print "[ERROR] Parsing Net Info : Net Information is not correct!! [$netName]\n";
 				exit(-1);
 			}
-            for my $pinIndex_inNet (0 .. $#net) {
+			for my $pinIndex_inNet (0 .. $#net) {
 				if(exists($h_outpinId_idx{$net[$pinIndex_inNet]}) && ($pins[$h_outpinId_idx{$net[$pinIndex_inNet]}][7] eq "VDD" || $pins[$h_outpinId_idx{$net[$pinIndex_inNet]}][7] eq "VSS")){
 					$powerinNet = 1;
 					$powerNet = $net[$pinIndex_inNet];
@@ -624,11 +609,11 @@ while (<$in>) {
 					}
 				}
 			}
-        }
-    }
-    ### Infile Status: Partition Info
-    if ($Partition_Parameter == 2 && $infileStatus eq "partition") {
-        if ($line =~ /^i   ins(\S+)\s*(\S+)\s*(\d+)/) {	
+		}
+	}
+	### Infile Status: Partition Info
+	if ($Partition_Parameter == 2 && $infileStatus eq "partition") {
+		if ($line =~ /^i   ins(\S+)\s*(\S+)\s*(\d+)/) {	
 			$instName = "ins".$1;
 			$instType = $2;
 			$instGroup = $3;
@@ -644,10 +629,10 @@ while (<$in>) {
 			push(@inst_group, [($instName, $instType, $instGroup)]);
 			$h_inst_group{$instName} = $instGroup;
 		}
-    }
-    ### Infile Status: TrackUsageInfo
-    if ($infileStatus eq "track") {
-        if ($line =~ /^i   net(\d+)\s*(\d+)/) {	
+	}
+	### Infile Status: TrackUsageInfo
+	if ($infileStatus eq "track") {
+		if ($line =~ /^i   net(\d+)\s*(\d+)/) {	
 			my $net_idx = $1;
 			my $net_track = $2;
 
@@ -662,17 +647,17 @@ while (<$in>) {
 				$h_track_net{$net_track} = $net_idx;
 			}
 		}
-    }
-    ### Infile Status: NetOptimizationInfo
-    if ($infileStatus eq "netopt") {
-        if ($line =~ /^i   net(\d+)\s*(\S+)/) {	
+	}
+	### Infile Status: NetOptimizationInfo
+	if ($infileStatus eq "netopt") {
+		if ($line =~ /^i   net(\d+)\s*(\S+)/) {	
 			my $net_idx = $1;
 			my $net_opt = $2;
 
 			print "[Net Optimization] net$net_idx => $net_opt\n";
 			$h_net_opt{$net_idx} = $net_opt;
 		}
-    }
+	}
 }
 close ($in);
 
@@ -784,15 +769,12 @@ my $vFR = "";
 my $vBL = "";
 my $vBR = "";
 
-=begin
-YW: GEAR RATIO
-=cut
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 for my $metal (1 .. $numMetalLayer) { 
-    for my $row (0 .. $numTrackH-3) {
-        for my $col (0 .. $numTrackV-1) {
-            $vName = "m".$metal."r".$row."c".$col;
+	for my $row (0 .. $numTrackH-3) {
+		for my $col (0 .. $numTrackV-1) {
+			$vName = "m".$metal."r".$row."c".$col;
 			if ($col == 0) { ### Left Vertex
 				$vL = "null";
 			} 
@@ -853,12 +835,12 @@ for my $metal (1 .. $numMetalLayer) {
 			else {
 				$vBR = "m".$metal."r".($row+1)."c".($col+1);
 			}
-            @vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
-            @vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
-            $vertices{$vName} = [@vertex];
-            $vIndex++;
-        }
-    }
+			@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
+			@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
+			$vertices{$vName} = [@vertex];
+			$vIndex++;
+		}
+	}
 }
 $numVertices = keys %vertices;
 print "a     # Vertices          = $numVertices\n";
@@ -879,28 +861,25 @@ my $vCost_34 = 4;
 my $mCost_4 = 1;
 my $wCost = 1;
 
-=begin
-YW: GEAR RATIO
-=cut
 ### DATA STRUCTURE:  UNDIRECTED_EDGE [index] [Term1] [Term2] [mCost] [wCost]
 for my $metal (1 .. $numMetalLayer) {     # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
-    for my $row (0 .. $numTrackH-3) {
-        for my $col (0 .. $numTrackV-1) {
-            $udEdgeTerm1 = "m".$metal."r".$row."c".$col;
-            if ($metal % 2 == 0) { # Even Layers ==> Horizontal
-                if ($vertices{$udEdgeTerm1}[5][1] ne "null") { # Right Edge
-                    $udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][1];
+	for my $row (0 .. $numTrackH-3) {
+		for my $col (0 .. $numTrackV-1) {
+			$udEdgeTerm1 = "m".$metal."r".$row."c".$col;
+			if ($metal % 2 == 0) { # Even Layers ==> Horizontal
+				if ($vertices{$udEdgeTerm1}[5][1] ne "null") { # Right Edge
+					$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][1];
 					if($metal == 4){
 						@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost_4, $wCost);
 					}
 					else{
 						@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost, $wCost);
 					}
-                    #print "@udEdge\n";
-                    push (@udEdges, [@udEdge]);
-                    $udEdgeIndex++;
-                }
-                if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
+					#print "@udEdge\n";
+					push (@udEdges, [@udEdge]);
+					$udEdgeIndex++;
+				}
+				if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
 					if($col % 2 == 0){
 						$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
 						@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost, $vCost);
@@ -908,25 +887,25 @@ for my $metal (1 .. $numMetalLayer) {     # Odd Layers: Vertical Direction   Eve
 						push (@udEdges, [@udEdge]);
 						$udEdgeIndex++;
 					}
-                }
-            }
-            else { # Odd Layers ==> Vertical
+				}
+			}
+			else { # Odd Layers ==> Vertical
 				if($metal > 1 && $col %2 == 1){
 					next;
 				}
-                if ($vertices{$udEdgeTerm1}[5][3] ne "null") { # Back Edge
-                    $udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][3];
+				if ($vertices{$udEdgeTerm1}[5][3] ne "null") { # Back Edge
+					$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][3];
 					if($metal == 3){
 						@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost, $wCost);
 					}
 					else{
 						@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost_1, $wCost);
 					}
-                    #print "@udEdge\n";
-                    push (@udEdges, [@udEdge]);
-                    $udEdgeIndex++;
-                }
-                if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
+					#print "@udEdge\n";
+					push (@udEdges, [@udEdge]);
+					$udEdgeIndex++;
+				}
+				if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
 					if($metal == 1){
 						$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
 						if($metal == 3){
@@ -951,10 +930,10 @@ for my $metal (1 .. $numMetalLayer) {     # Odd Layers: Vertical Direction   Eve
 						push (@udEdges, [@udEdge]);
 						$udEdgeIndex++;
 					}
-                }
-            }
-        }
-    }
+				}
+			}
+		}
+	}
 }
 $udEdgeNumber = scalar @udEdges;
 print "a     # udEdges           = $udEdgeNumber\n";
@@ -985,8 +964,8 @@ my $numBoundaries = 0;
 
 ### Normal External Pins - Top&top-1 layer only
 for my $metal ($numMetalLayer-1 .. $numMetalLayer) { 
-    for my $row (0 .. $numTrackH-3) {
-        for my $col (0 .. $numTrackV-1) {
+	for my $row (0 .. $numTrackH-3) {
+		for my $col (0 .. $numTrackV-1) {
 			if($metal%2==0){
 				if($col%2 == 1){
 					next;
@@ -1024,8 +1003,8 @@ for my $metal ($numMetalLayer-1 .. $numMetalLayer) {
 					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
 				}
 			}
-        }
-    }
+		}
+	}
 }
 
 $numBoundaries = scalar @boundaryVertices;
@@ -1039,25 +1018,25 @@ my $numOuterPins = 0;
 my $commodityInfo = -1;
 
 for my $pinID (0 .. $#pins) {
-    if ($pins[$pinID][3] == -1) {
-        $commodityInfo = -1;  # Initializing
-        # Find Commodity Infomation
-        for my $netIndex (0 .. $#nets) {
-            if ($nets[$netIndex][0] eq $pins[$pinID][1]){
-                for my $sinkIndexofNet (0 .. $nets[$netIndex][4]){
-                    if ( $nets[$netIndex][5][$sinkIndexofNet] eq $pins[$pinID][0]){
-                        $commodityInfo = $sinkIndexofNet; 
-                    }    
-                }
-            }
-        }
-        if ($commodityInfo == -1){
-            print "ERROR: Cannot Find the commodity Information!!\n\n";
-        }
-        @outerPin = ($pins[$pinID][0],$pins[$pinID][1],$commodityInfo);
-        push (@outerPins, [@outerPin]) ;
+	if ($pins[$pinID][3] == -1) {
+		$commodityInfo = -1;  # Initializing
+		# Find Commodity Infomation
+		for my $netIndex (0 .. $#nets) {
+			if ($nets[$netIndex][0] eq $pins[$pinID][1]){
+				for my $sinkIndexofNet (0 .. $nets[$netIndex][4]){
+					if ( $nets[$netIndex][5][$sinkIndexofNet] eq $pins[$pinID][0]){
+						$commodityInfo = $sinkIndexofNet; 
+					}    
+				}
+			}
+		}
+		if ($commodityInfo == -1){
+			print "ERROR: Cannot Find the commodity Information!!\n\n";
+		}
+		@outerPin = ($pins[$pinID][0],$pins[$pinID][1],$commodityInfo);
+		push (@outerPins, [@outerPin]) ;
 		$h_outerPin{$pins[$pinID][0]} = 1;
-    }
+	}
 }
 $numOuterPins = scalar @outerPins;
 
@@ -1072,37 +1051,34 @@ my @backCorners = ();
 my $numBackCorners = 0;
 my $cornerVertex = "";
 
-=begin
-YW: GEAR RATIO
-=cut
 for my $metal (1 .. $numMetalLayer) { # At the top-most metal layer, only vias exist.
-    for my $row (0 .. $numTrackH-3) {
-        for my $col (0 .. $numTrackV-1) {
+	for my $row (0 .. $numTrackH-3) {
+		for my $col (0 .. $numTrackV-1) {
 			if($metal==1 && $col % 2 == 1){
 				next;
 			}
 			elsif($metal % 2 == 1 && $col % 2 == 1){
 				next;
 			}
-            $cornerVertex = "m".$metal."r".$row."c".$col;
-            if ($col == 0) {
-                push (@leftCorners, $cornerVertex);
-                $numLeftCorners++;
-            }
-            if ($col == $numTrackV-1) {
-                push (@rightCorners, $cornerVertex);
-                $numRightCorners++;
-            }
-            if ($row == 0) {
-                push (@frontCorners, $cornerVertex);
-                $numFrontCorners++;
-            }
-            if ($row == $numTrackH-3) {
-                push (@backCorners, $cornerVertex);
-                $numBackCorners++;
-            }
-        }
-    }
+			$cornerVertex = "m".$metal."r".$row."c".$col;
+			if ($col == 0) {
+				push (@leftCorners, $cornerVertex);
+				$numLeftCorners++;
+			}
+			if ($col == $numTrackV-1) {
+				push (@rightCorners, $cornerVertex);
+				$numRightCorners++;
+			}
+			if ($row == 0) {
+				push (@frontCorners, $cornerVertex);
+				$numFrontCorners++;
+			}
+			if ($row == $numTrackH-3) {
+				push (@backCorners, $cornerVertex);
+				$numBackCorners++;
+			}
+		}
+	}
 }
 #print "@backCorners\n";
 print "a     # Left Corners      = $numLeftCorners\n";
@@ -1129,38 +1105,38 @@ my $keyValue = "";
 my $keySON = "pinSON";
 
 for my $pinID (0 .. $#pins) {
-    @subNodes = ();
-    if ($pins[$pinID][2] eq "s") { # source
-        if ($pins[$pinID][3] == -1) {
-            if ($SON == 1){
-                if ($outerPinFlagSource == 0){
-                    print "a        [SON Mode] Super Outer Node Simplifying - Source Case (Not Yet!)\n";
-                    @subNodes = @boundaryVertices;
-                    $outerPinFlagSource = 1;
-                    $keyValue = $keySON;
-                }
-                else{
-                    next;
-                }
-            }
-            else{   # SON Disable
-                @subNodes = @boundaryVertices;
-                $keyValue = $pins[$pinID][0];
-            }
-        } else {
-            for my $node (0 .. $pins[$pinID][3]-1) {
-                push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
-            }
-            $keyValue = $pins[$pinID][0];
-        }
-        $numSubNodes = scalar @subNodes;
-        @source = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
-        # Outer Pin should be at last in the input File Format [2018-10-15]
-        $sources{$keyValue} = [@source];
-    }
-    elsif ($pins[$pinID][2] eq "t") { # sink
-        if ($pins[$pinID][3] == -1) {
-            if ( $SON == 1) {        
+	@subNodes = ();
+	if ($pins[$pinID][2] eq "s") { # source
+		if ($pins[$pinID][3] == -1) {
+			if ($SON == 1){
+				if ($outerPinFlagSource == 0){
+					print "a        [SON Mode] Super Outer Node Simplifying - Source Case (Not Yet!)\n";
+					@subNodes = @boundaryVertices;
+					$outerPinFlagSource = 1;
+					$keyValue = $keySON;
+				}
+				else{
+					next;
+				}
+			}
+			else{   # SON Disable
+				@subNodes = @boundaryVertices;
+				$keyValue = $pins[$pinID][0];
+			}
+		} else {
+			for my $node (0 .. $pins[$pinID][3]-1) {
+				push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
+			}
+			$keyValue = $pins[$pinID][0];
+		}
+		$numSubNodes = scalar @subNodes;
+		@source = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
+		# Outer Pin should be at last in the input File Format [2018-10-15]
+		$sources{$keyValue} = [@source];
+	}
+	elsif ($pins[$pinID][2] eq "t") { # sink
+		if ($pins[$pinID][3] == -1) {
+			if ( $SON == 1) {        
 				if ($outerPinFlagSink == 0){
 					print "a        [SON Mode] Super Outer Node Simplifying - Sink\n";
 					@subNodes = @boundaryVertices;
@@ -1170,21 +1146,21 @@ for my $pinID (0 .. $#pins) {
 				else{
 					next;
 				}
-            }
-            else{ 
-                @subNodes = @boundaryVertices;
-                $keyValue = $pins[$pinID][0];
-            }
-        } else {
-            for my $node (0 .. $pins[$pinID][3]-1) {
-                push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
-            }
-            $keyValue = $pins[$pinID][0];
-        }
-        $numSubNodes = scalar @subNodes;
-        @sink = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
-        $sinks{$keyValue} = [@sink];
-    }
+			}
+			else{ 
+				@subNodes = @boundaryVertices;
+				$keyValue = $pins[$pinID][0];
+			}
+		} else {
+			for my $node (0 .. $pins[$pinID][3]-1) {
+				push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
+			}
+			$keyValue = $pins[$pinID][0];
+		}
+		$numSubNodes = scalar @subNodes;
+		@sink = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
+		$sinks{$keyValue} = [@sink];
+	}
 }
 my $numExtNets = keys %h_extnets;
 $numSources = keys %sources;
@@ -1195,17 +1171,17 @@ print "a     # Sinks             = $numSinks\n";
 
 if ( $SON == 1){
 ############### Pin Information Modification #####################
-    for my $pinIndex (0 .. $#pins) {
-        for my $outerPinIndex (0 .. $#outerPins){
-            if ($pins[$pinIndex][0] eq $outerPins[$outerPinIndex][0] ){
+	for my $pinIndex (0 .. $#pins) {
+		for my $outerPinIndex (0 .. $#outerPins){
+			if ($pins[$pinIndex][0] eq $outerPins[$outerPinIndex][0] ){
 				$pins[$pinIndex][0] = $keySON;
 				$pins[$pinIndex][1] = "Multi";
 				next;
-            }   
-        }
-    }
+			}   
+		}
+	}
 ############ SON Node should be last elements to use pop ###########
-    my $SONFlag = 0;
+	my $SONFlag = 0;
 	my $tmp_cnt = $#pins;
 	for(my $i=0; $i<=$tmp_cnt; $i++){
 		if($pins[$tmp_cnt-$i][0] eq $keySON){
@@ -1213,32 +1189,32 @@ if ( $SON == 1){
 			@pin = pop @pins;
 		}
 	}
-    if ($SONFlag == 1){
-        push (@pins, @pin);
-    }
+	if ($SONFlag == 1){
+		push (@pins, @pin);
+	}
 }
 ############### Net Information Modification from Outer pin to "SON"
 if ( $SON == 1 ){
-    for my $netIndex (0 .. $#nets) {
-        for my $sinkIndex (0 .. $nets[$netIndex][4]-1){
-            for my $outerPinIndex (0 .. $#outerPins){
-                if ($nets[$netIndex][5][$sinkIndex] eq $outerPins[$outerPinIndex][0] ){
+	for my $netIndex (0 .. $#nets) {
+		for my $sinkIndex (0 .. $nets[$netIndex][4]-1){
+			for my $outerPinIndex (0 .. $#outerPins){
+				if ($nets[$netIndex][5][$sinkIndex] eq $outerPins[$outerPinIndex][0] ){
 					$nets[$netIndex][5][$sinkIndex] = $keySON;
-                    next;
-                }
-            }
-        }
-        for my $pinIndex (0 .. $nets[$netIndex][2]-1){
-            for my $outerPinIndex (0 .. $#outerPins){
-                if ($nets[$netIndex][6][$pinIndex] eq $outerPins[$outerPinIndex][0] ){
+					next;
+				}
+			}
+		}
+		for my $pinIndex (0 .. $nets[$netIndex][2]-1){
+			for my $outerPinIndex (0 .. $#outerPins){
+				if ($nets[$netIndex][6][$pinIndex] eq $outerPins[$outerPinIndex][0] ){
 					$nets[$netIndex][6][$pinIndex] = $keySON;
-                    next;
-                }
-            }
-        }
-    }
+					next;
+				}
+			}
+		}
+	}
 }
- 
+
 ### VIRTUAL EDGE Generation
 ### We only define directed virtual edges since we know the direction based on source/sink information.
 ### All supernodes are having names starting with 'pin'.
@@ -1250,8 +1226,8 @@ my $vEdgeNumber = 0;
 my $virtualCost = 0;
 
 for my $pinID (0 .. $#pins) {
-    if ($pins[$pinID][2] eq "s") { # source
-        if(exists $sources{$pins[$pinID][0]}){
+	if ($pins[$pinID][2] eq "s") { # source
+		if(exists $sources{$pins[$pinID][0]}){
 			if(exists($h_inst_idx{$pins[$pinID][6]})){
 				my $instIdx = $h_inst_idx{$pins[$pinID][6]};
 				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
@@ -1309,12 +1285,12 @@ for my $pinID (0 .. $#pins) {
 				print "[ERROR] Virtual Edge Generation : Instance Information not found!!\n";
 				exit(-1);
 			}
-        }
-    }
-    elsif ($pins[$pinID][2] eq "t") { # sink
-        if(exists $sinks{$pins[$pinID][0]}){
+		}
+	}
+	elsif ($pins[$pinID][2] eq "t") { # sink
+		if(exists $sinks{$pins[$pinID][0]}){
 			if($pins[$pinID][0] eq $keySON){
-			   for my $term (0 ..  $sinks{$pins[$pinID][0]}[1]-1){
+			for my $term (0 ..  $sinks{$pins[$pinID][0]}[1]-1){
 					@virtualEdge = ($vEdgeIndex, $sinks{$pins[$pinID][0]}[2][$term], $pins[$pinID][0], $virtualCost);
 					push (@virtualEdges, [@virtualEdge]);
 					$vEdgeIndex++;
@@ -1375,8 +1351,8 @@ for my $pinID (0 .. $#pins) {
 				print "[ERROR] Virtual Edge Generation : Instance Information not found!!\n";
 				exit(-1);
 			}
-        }
-    }
+		}
+	}
 }
 my %edge_in = ();
 my %edge_out = ();
@@ -1514,24 +1490,24 @@ print $out ";	# Pins              = $totalPins\n";
 print $out ";	# Sources           = $numSources\n";
 print $out ";	List of Sources   = ";
 foreach my $key (keys %sources) {
-    print $out "$key ";
+	print $out "$key ";
 }
 print $out "\n";
 print $out ";	# Sinks             = $numSinks\n";
 print $out ";	List of Sinks     = ";
 foreach my $key (keys %sinks) {
-    print $out "$key ";
+	print $out "$key ";
 }
 print $out "\n";
 print $out ";	# Outer Pins        = $numOuterPins\n";
 print $out ";	List of Outer Pins= ";
 for my $i (0 .. $#outerPins) {              # All SON (Super Outer Node)
-    print $out "$outerPins[$i][0] ";        # 0 : Pin number , 1 : net number
+	print $out "$outerPins[$i][0] ";        # 0 : Pin number , 1 : net number
 }
 print $out "\n";
 print $out ";	Outer Pins Information= ";
 for my $i (0 .. $#outerPins) {              # All SON (Super Outer Node)
-    print $out " $outerPins[$i][1]=$outerPins[$i][2] ";        # 0 : Net number , 1 : Commodity number
+	print $out " $outerPins[$i][1]=$outerPins[$i][2] ";        # 0 : Net number , 1 : Commodity number
 }
 print $out "\n";
 print $out "; Parameters: SON=$SON DPR=$DoublePowerRail MAR=$MAR_Parameter EOL=$EOL_Parameter VR=$VR_Parameter PRL=$PRL_Parameter SHR=$SHR_Parameter MPL=$MPL_Parameter\n";
@@ -1675,6 +1651,7 @@ for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
 	cnt("l", 0);
 	cnt("c", 0);
 }
+
 for my $i (0 .. $numInstance - 1) {
 	my @tmp_finger = ();
 	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
@@ -1690,6 +1667,7 @@ for my $i (0 .. $numInstance - 1) {
 	cnt("l", 0);
 	cnt("c", 0);
 }
+
 my $tmp_minWidth = 0;
 for my $i (0 .. $lastIdxPMOS) {
 	my @tmp_finger = ();
@@ -3006,7 +2984,7 @@ my %PMOS_forbidden = {};
 if ($stack_struct_flag eq "PN") {
 	# Mark: Forbidden access NMOS on the second and third track
 	for my $vEdgeIndex (0 .. $#virtualEdges) {
-    	
+		
 		my $toCol   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3];
 		my $toRow   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[2];
 		my $len = length(sprintf("%b", $numTrackV))+4;
@@ -3024,7 +3002,7 @@ if ($stack_struct_flag eq "PN") {
 	# stack_struct_flag == "NP"
 	# Mark: Forbidden access PMOS on the second and third track
 	for my $vEdgeIndex (0 .. $#virtualEdges) {
-    	
+		
 		my $toCol   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3];
 		my $toRow   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[2];
 		my $len = length(sprintf("%b", $numTrackV))+4;
@@ -3577,6 +3555,7 @@ while($isEnd == 0){
 			}
 		}
 	}
+	# .= is concatenation and assign
 	$str.=";Unset All Metal/Net/Wire over the rightmost cell/metal(>COST_SIZE+1)\n";
 # Unset All Metal/Net/Wire over the rightmost cell/metal(>COST_SIZE+1)
 	for my $udeIndex (0 .. $#udEdges) {
@@ -4369,8 +4348,7 @@ $str.="; 2.2.9 More space between two net is favorable to improve pin accesibili
 if ($PE1_newflag == 0) {
 for my $col (0 .. $numTrackV-1){
 	my $valid = 0;
-	# numTrackV in bit length + 4?
-	my $len = length(sprintf("%b", $numTrackV))+4; #an unsigned integer, in binary 
+	my $len = length(sprintf("%b", $numTrackV))+4;
 	#my $tmp_str="(assert (ite (and (bvsge COST_SIZE (_ bv".$col." $len)) (or ";
 	#my $tmp_str="(assert (ite (bvsge COST_SIZE (_ bv".$col." $len)) (ite (and (or ";
 	my $tmp_str="(assert (ite (and (or ";
@@ -5220,7 +5198,7 @@ for my $col (0 .. $numTrackV-1){
 	# ========================================
 	# Mark:
 	# v2.3_cfet shared/split structure support 
-        $str.=";Set Initial Value for Shared Gate/S/D Soruce to sinks Pins of P/N FET in the same column\n";
+		$str.=";Set Initial Value for Shared Gate/S/D Soruce to sinks Pins of P/N FET in the same column\n";
 	## Set Initial Value for Gate Pins of P/N FET in the same column
 		
 	for my $netIndex (0 .. $#nets) {
@@ -5502,7 +5480,7 @@ for my $col (0 .. $numTrackV-1){
 	print "=============================\n";	
 	print "     Shared G/S/D Sinks      \n";	
 	print "=============================\n";	
-        $str.=";Set Initial Value for Shared Gate/S/D Sink Pins of P/N FET in the same column\n";
+		$str.=";Set Initial Value for Shared Gate/S/D Sink Pins of P/N FET in the same column\n";
 	## Data Structure: pin = ($pinName, $pin_netID, $pinIO, $pinLength, $pinXpos, [@pinYpos], $pin_instID, $pin_type);
 	for my $pin_idx1 (0 .. $#pins) {
 		for my $pin_idx2 ($pin_idx1+1 .. $#pins) {
@@ -5658,7 +5636,7 @@ for my $col (0 .. $numTrackV-1){
 													# stack_struct_flag == "NP"
 													if ($toRow == 3) {
 														# NMOS virtual pin in case 1 ( 4 routing tracks case )
-													        push(@tmp_var_T1, $tmp_vname);
+															push(@tmp_var_T1, $tmp_vname);
 														setVar($tmp_vname, 2);
 														$cnt_var_T1++;
 														#push(@tmp_var_T1, $tmp_vname1);
@@ -5672,7 +5650,7 @@ for my $col (0 .. $numTrackV-1){
 												if ($stack_struct_flag eq "PN") {
 													if ($toRow == 3) {
 														# PMOS virtual pin in case 1 ( 4 routing tracks case )
-													        push(@tmp_var_T1, $tmp_vname);
+															push(@tmp_var_T1, $tmp_vname);
 														setVar($tmp_vname, 2);
 														$cnt_var_T1++;
 														#push(@tmp_var_T1, $tmp_vname1);
@@ -6053,7 +6031,7 @@ for my $col (0 .. $numTrackV-1){
 													if ($toRow >= $numTrackH-4) {
 														# NMOS virtual pin in case 1 ( 4 routing tracks case )
 														print "F1: $tmp_vname\n";
-													        push(@tmp_var_F1, $tmp_vname);
+															push(@tmp_var_F1, $tmp_vname);
 														setVar($tmp_vname, 2);
 														$cnt_var_F1++;
 														push(@tmp_var_F1, $tmp_vname1);
@@ -6078,7 +6056,7 @@ for my $col (0 .. $numTrackV-1){
 													if ($toRow >= $numTrackH-4) {
 														# PMOS virtual pin in case 1 ( 4 routing tracks case )
 														print "F1: $tmp_vname\n";
-													        push(@tmp_var_F1, $tmp_vname);
+															push(@tmp_var_F1, $tmp_vname);
 														setVar($tmp_vname, 2);
 														$cnt_var_F1++;
 														push(@tmp_var_F1, $tmp_vname1);
@@ -6296,7 +6274,7 @@ for my $col (0 .. $numTrackV-1){
 	## Split Gate/S/D of PMOS and NMOS instance
 	## Data Structure: pin = ($pinName, $pin_netID, $pinIO, $pinLength, $pinXpos, [@pinYpos], $pin_instID, $pin_type);
 	for my $col (1 .. $numTrackV-2) {
-                my $len = length(sprintf("%b", $numTrackV))+4;
+				my $len = length(sprintf("%b", $numTrackV))+4;
 		# Mark: 1st case PMOS on Rtrack 0-> virtual pin of NMOS on Rtrack 0-2 is 0
 		#       2nd case PMOS on Rtrack 3-> virtual pin of NMOS on Rtrack 1-3 is 0
 		my @tmp_var_false1 = ();
@@ -6331,7 +6309,7 @@ for my $col (0 .. $numTrackV-1){
 			}
 			push (@tmp_var_true_pmos_pin, $tmp_vname);
 		}
-	 
+	
 		for my $vEdgeIndex (0 .. $#virtualEdges) {
 			my $toRow   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[2];
 			my $toCol   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3];
@@ -6368,7 +6346,7 @@ for my $col (0 .. $numTrackV-1){
 					
 			} #If
 		} # End vEdgeIndex
-                # Output
+				# Output
 		#if (($dummy_g_struct_flag eq "Split" && $col%2 == 0) || ( $dummy_sd_struct_flag eq "Split" && $col%2 == 1 )) {
 		$str.="(assert (ite (and (or ";
 		for my $m(0 .. $#tmp_cond_PMOS){
@@ -6397,16 +6375,16 @@ for my $col (0 .. $numTrackV-1){
 				cnt("l", 1);
 			}
 			$str.=") ";
-                        $str.=" (ite (or "; # Instance Range
-                        for my $instIdx (0 .. $lastIdxPMOS) {
+						$str.=" (ite (or "; # Instance Range
+						for my $instIdx (0 .. $lastIdxPMOS) {
 				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
-                                my $Left_x = $col - $tmp_finger[0]*2;
-                                if ($Left_x < 0) { 
+								my $Left_x = $col - $tmp_finger[0]*2;
+								if ($Left_x < 0) { 
 					$Left_x = 1;
 				}
-                                for my $Cur_x ($Left_x .. $col) {
-                                    $str.="(= x$instIdx (_ bv$Cur_x $len)) ";
-                                }
+								for my $Cur_x ($Left_x .. $col) {
+									$str.="(= x$instIdx (_ bv$Cur_x $len)) ";
+								}
 			}
 			$str.=") (and ";
 			for my $m(0 .. $#tmp_var_true1){
@@ -6461,7 +6439,7 @@ for my $col (0 .. $numTrackV-1){
 	## Split Gate/S/D of PMOS and NMOS instance
 	## Data Structure: pin = ($pinName, $pin_netID, $pinIO, $pinLength, $pinXpos, [@pinYpos], $pin_instID, $pin_type);
 	for my $col (1 .. $numTrackV-2) {
-                my $len = length(sprintf("%b", $numTrackV))+4;
+				my $len = length(sprintf("%b", $numTrackV))+4;
 		# Mark: 1st case NMOS on Rtrack 0-> virtual pin of PMOS on Rtrack 0-2 is 0
 		#       2nd case NMOS on Rtrack 3-> virtual pin of PMOS on Rtrack 1-3 is 0
 		my @tmp_var_false1 = ();
@@ -6496,7 +6474,7 @@ for my $col (0 .. $numTrackV-1){
 			}
 			push (@tmp_var_true_nmos_pin, $tmp_vname);
 		}
-	 
+	
 		for my $vEdgeIndex (0 .. $#virtualEdges) {
 			my $toRow   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[2];
 			my $toCol   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3];
@@ -6533,7 +6511,7 @@ for my $col (0 .. $numTrackV-1){
 					
 			} #If
 		} # End vEdgeIndex
-                # Output
+				# Output
 		#if (($dummy_g_struct_flag eq "Split" && $col%2 == 0) || ( $dummy_sd_struct_flag eq "Split" && $col%2 == 1 )) {
 		$str.="(assert (ite (and (or ";
 		for my $m(0 .. $#tmp_cond_PMOS){
@@ -6562,16 +6540,16 @@ for my $col (0 .. $numTrackV-1){
 				cnt("l", 1);
 			}
 			$str.=") ";
-                        $str.=" (ite (or "; # Instance Range
-                        for my $instIdx ($lastIdxPMOS+1 .. $numInstance - 1) {
+						$str.=" (ite (or "; # Instance Range
+						for my $instIdx ($lastIdxPMOS+1 .. $numInstance - 1) {
 				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
-                                my $Left_x = $col - $tmp_finger[0]*2;
-                                if ($Left_x < 0) { 
+								my $Left_x = $col - $tmp_finger[0]*2;
+								if ($Left_x < 0) { 
 					$Left_x = 1;
 				}
-                                for my $Cur_x ($Left_x .. $col) {
-                                    $str.="(= x$instIdx (_ bv$Cur_x $len)) ";
-                                }
+								for my $Cur_x ($Left_x .. $col) {
+									$str.="(= x$instIdx (_ bv$Cur_x $len)) ";
+								}
 			}
 			$str.=") (and ";
 			for my $m(0 .. $#tmp_var_true1){
@@ -9862,7 +9840,7 @@ for my $col (0 .. $numTrackV-1){
 	else{  # PRL Rule Enable /Disable
 
 ### Minimum Area Rule to prevent from having small metal segment
-		 for my $metal (2 .. $numMetalLayer) { # no DR on M1 
+		for my $metal (2 .. $numMetalLayer) { # no DR on M1 
 			if ($metal % 2 == 0) {  # M2/M4
 				for my $row (0 .. $numTrackH-3) {
 					for my $col (0 .. $numTrackV - $MAR_Parameter) {
@@ -10674,9 +10652,6 @@ for my $col (0 .. $numTrackV-1){
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 		$str.=";8-D. from Front Tip to Back Tips for each vertex\n";
-=begin
-		YW: GEAR RATIO
-=cut
 		for my $metal (1 .. $numMetalLayer) { # no DR on M1
 			if ($metal % 2 == 1) {
 				for my $row (1 .. $numTrackH-3) {
@@ -10931,9 +10906,7 @@ for my $col (0 .. $numTrackV-1){
 ### ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 		my $maxDistRow = $numTrackH-1;
 		my $maxDistCol = $numTrackV-1;
-=begin
-		YW: GEAR RATIO
-=cut
+
 		for my $metal (1 .. $numMetalLayer) { # no DR on M1
 		#for my $metal (1 .. 1) { # no DR on M1
 			if($metal == 1){
@@ -14809,7 +14782,7 @@ for my $col (0 .. $numTrackV-1) {
 		}
 		if ($col == 0) {
 			$weight =  2*2*$MPL_Parameter;
-                } else {
+				} else {
 			$weight =  2*$MPL_Parameter;
 		}
 		print $out " (ite (= COST_Pin_C$col true) (_ bv".$weight." ".(length(sprintf("%b", $numEdges))+4).") (_ bv0 ".(length(sprintf("%b", $numEdges))+4)."))";
@@ -15158,8 +15131,8 @@ if($MM_Parameter >= 4){
 		}
 	}
 	print $out "))\n";
-        # Total Metal Length
-        print $out "(minimize (bvadd";
+		# Total Metal Length
+		print $out "(minimize (bvadd";
 	for my $col(0 .. ($numTrackV-1)/2-1){
 		#if($idx_obj >= $limit_obj){
 		#	$idx_obj = 0;
