@@ -1,15 +1,15 @@
 #!/bin/bash
 solverPath=""
 #inputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T_Extend/inputsSMT_cfet" 	# yuw
-inputPath="/home/yuwcse/Desktop/Github/smt/inputsSMT_cfet"
+inputPath="../../inputsSMT_cfet"
 #inputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T/inputsSMT_cfet_exp1_mpo2_wopinfix"
 #outputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T_Extend/RUN_cfet"		# yuw
-outputPath="/home/yuwcse/Desktop/Github/smt/CFET/PNR_4.5T_Extend/RUN_cfet"
+outputPath="./RUN_cfet"
 #LefPath="/home/marh/ConvtoLef/input_cfet_exp3_wopinfix_mpo3"
 #LefPath="./solutionsSMT_cfet_exp3_loc0_wopinfix_offtrack8"
 #LefPath="./solutionsSMT_cfet_exp1_loc0_wopinfix_offtrack8"
 #LefPath="./solutionsSMT_cfet_exp1_loc1_woM2min_offtrack8_0"
-LefPath="./home/yuwcse/Desktop/Github/smt/CFET/PNR_4.5T_Extend/solutionsSMT_cfet"
+LefPath="./solutionsSMT_cfet"
 timeout=864000
 nThreads="4"
 #RandomSeed="17" # DFF

@@ -1,0 +1,29 @@
+- N1_E_m1r0c0_m1r1c0 () Bool: Net_1 Edge Metal_1 Row_0 Col_0
+- N1_E_m1r1c2_pinMM0_1 () Bool
+- N1_C0_E_m3r1c0_pinSON () Bool: Net_1 Commodity_0 Edge Metal_3 Row_1 Col_0
+- N1_C1_E_m1r0c0_m1r1c0  () Bool:       # N$nets[$netIndex][1]_C$commodityIndex\_E_$vName_1\_$vName_2
+- N1_C1_E_m1r0c2_m1r1c2 () Bool         # N$nets[$netIndex][1]_C$commodityIndex\_E_$vName_1\_$vName_2
+- N1_C1_E_m1r3c2_pinMM1_1 () Bool
+- M_m1r0c2_pinMM1_1 () Bool
+- M_m4r3c5_m4r3c6 () Bool               # M_$vName_s\_$vName_e
+- M_m1r0c0_pinMM1_1 () Bool
+- M_m3r2c6_pinSON () Bool
+- ff1 () Bool                           # instance flip flag
+- x0 () (_ BitVec 7)                    # instance x position: "%b", $numTrackV
+- y0 () (_ BitVec 2)                    # instance y position: "%b", $numPTrackH
+- w1 () (_ BitVec 2)                    # width: "%b", (2*$tmp_finger[0]+1)
+- uw1 () (_ BitVec 2):                  # unit width: "%b", $trackEachPRow
+- nf1 () (_ BitVec 1):                  # num of finger: "%b", $tmp_finger[0]
+- GF_V_m1r0c0 () Bool:                  GF_V_$vName = GF_V_$"m".$metal."r".$row."c".$col
+- GB_V_m3r3c6 () Bool:                  GB_V_$vName = GB_V_$"m".$metal."r".$row."c".$col
+- GL_V_m2r0c0 () Bool:                  GL_V_$vName = GL_V_$"m".$metal."r".$row."c".$col
+- GR_V_m2r0c0 () Bool:                  GR_V_$vName = GR_V_$"m".$metal."r".$row."c".$col
+- C_N2_m4r3c6 () Bool:                  C_N$nets[$netIndex][1]\_$vName
+- C_VIA_WO_N1_E_m2r3c2_m3r3c2 () Bool:  C_VIA_WO_N$nets[$netIndex][1]_E_$neighborName\_$neighborUp
+- COST_SIZE_P () (_ BitVec 7)
+- COST_SIZE_N () (_ BitVec 7)
+- COST_SIZE () (_ BitVec 7)
+- COST_Pin_C0 () Bool
+- N1_M2_TRACK () Bool:                  N[h_extnets]\_M2\_TRACK
+- N1_M2_TRACK_3 () Bool:                N[h_extnets]\_M2\_TRACK_[numTrackH-3]
+- M2_TRACK_3 () Bool

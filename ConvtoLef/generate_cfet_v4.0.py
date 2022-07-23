@@ -7,6 +7,9 @@ from enum import Enum
 Cell_metrics_map = {}
 
 class Instance:
+  """
+    
+  """
   def __init__(self, idx, lx, ly, numFinger, isFlip, totalWidth, unitWidth):
     self.idx = int(idx)
     self.lx = int(lx)
@@ -116,6 +119,7 @@ class TechInfo:
 
   def update(self, isMaxCellWidthUpdate):
     self.metalWidth = int(self.metalPitch/2)
+    # Buried Power Rail
     if self.bprFlag == BprMode.METAL1 or self.bprFlag == BprMode.METAL2:
       self.realTrack = self.numTrack + 2
     elif self.bprFlag == BprMode.BPR:
@@ -303,6 +307,14 @@ class ObsInfo:
 
 
 def GetVddVssPinLefStr(techInfo):
+  """_summary_
+
+  Args:
+      techInfo (_type_): _description_
+
+  Returns:
+      _type_: _description_
+  """  
   if techInfo.bprFlag == BprMode.NONE:
     return "" 
   
@@ -372,6 +384,13 @@ def GetVddVssPinLefStr(techInfo):
 
 
 def GenerateLef(inputFileList, outputDir, techInfo):
+  """_summary_
+
+  Args:
+      inputFileList (_type_): _description_
+      outputDir (_type_): _description_
+      techInfo (_type_): _description_
+  """  
   ########## Original LEF gen
   lefStr = "VERSION 5.8 ;\n"
   lefStr += 'BUSBITCHARS "[]" ;\n'
@@ -427,6 +446,9 @@ def GenerateLef(inputFileList, outputDir, techInfo):
   f.close()
 
 def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth): 
+  """
+    Reading .conv file and extract information
+  """
   global Cell_metrics_map;
   gridWidth = ""
   insts = []
@@ -453,11 +475,28 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
       techInfo.numCpp = int(int(words[1])/2)+1
       numCPP = int(int(words[1])/2)+1
     elif words[0] == "INST":
-      insts.append( Instance(words[1], words[2], words[3], \
-          words[4], words[5], words[6], words[7]))
+      # adding Instance
+      insts.append( \
+        Instance(
+          idx=words[1], 
+          lx=words[2], 
+          ly=words[3],
+          numFinger=words[4], 
+          isFlip=words[5], 
+          totalWidth=words[6], 
+          unitWidth=words[7]
+          )
+        )
     elif words[0] == "METAL":
-      metals.append( Metal(words[1], words[2], words[3], \
-          words[4], words[5], words[6]) )
+      metals.append( 
+                    Metal(
+                      words[1], 
+                      words[2], 
+                      words[3],
+                      words[4],
+                      words[5],
+                      words[6])
+                    )
     elif words[0] == "VIA":
       vias.append( Via(words[1], words[2], words[3], words[4], words[5]) )
     elif words[0] == "EXTPIN":
@@ -1020,11 +1059,19 @@ if len(sys.argv) <= 1:
 if len(sys.argv) >= 6:
   inputDir = sys.argv[5]
   outputDir = sys.argv[6]
+
 print(inputDir)
 print(outputDir)
 fileList = os.listdir(inputDir)
-tech = TechInfo(0, 0, sys.argv[1], sys.argv[2], sys.argv[3], BprMode.NONE, \
-        GetMpoFlag(sys.argv[4]))
+tech = TechInfo(
+  numCpp=0, 
+  numTrack=0, 
+  metalPitch=sys.argv[1], 
+  cppWidth=sys.argv[2], 
+  siteName=sys.argv[3], 
+  bprFlag=BprMode.NONE,
+  mpoFlag=GetMpoFlag(sys.argv[4])
+  )
 
 # generate six lef files
 for bprFlag in [BprMode.BPR]:
