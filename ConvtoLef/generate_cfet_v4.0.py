@@ -7,9 +7,6 @@ from enum import Enum
 Cell_metrics_map = {}
 
 class Instance:
-  """
-    
-  """
   def __init__(self, idx, lx, ly, numFinger, isFlip, totalWidth, unitWidth):
     self.idx = int(idx)
     self.lx = int(lx)
@@ -22,7 +19,6 @@ class Instance:
   def dump(self):
     print("Instance idx: %d, (%d, %d), finger: %d, isfilp: %d, totalWidth: %d, unitWidth: %d" \
         % (self.idx, self.lx, self.ly, self.numFinger, self.isFlip, self.totalWidth, self.unitWidth))
-
 
 class Metal:
   def __init__(self, layer, fromRow, fromCol, toRow, toCol, netID):
@@ -118,6 +114,7 @@ class TechInfo:
     self.update(False)
 
   def update(self, isMaxCellWidthUpdate):
+    # metal width = metal pitch / 2
     self.metalWidth = int(self.metalPitch/2)
     # Buried Power Rail
     if self.bprFlag == BprMode.METAL1 or self.bprFlag == BprMode.METAL2:
@@ -1043,40 +1040,44 @@ def DumpCellMetrics(outputDir):
 # ==============================================================================================================
 # v4.0: Adjutst M2 left and right extension 0.009um; It is still consistent with the FEOL grid-based assumption.
 # ==============================================================================================================
-inputDir = "./input_cfet_exp1_pinfix/"
-outputDir = "./output_cfet/"
+def main():
+  inputDir = "./input_cfet_exp1_pinfix/"
+  outputDir = "./output_cfet/"
 
-if len(sys.argv) <= 1:
-  print("Usage:   python generate.py <metalPitch> <cppWidth> <siteName> <mpoMode>\n\n")
-  print("         metalPitch: int")
-  print("         cppWidth  : int")
-  print("         siteName  : string")
-  print("         mpoMode   : 2/3/MAX\n")
-  print("Example: ")
-  print("         python generate_cfet.py 24 42 coreSite 2")
-  sys.exit(1)
+  if len(sys.argv) <= 1:
+    print("Usage:   python generate.py <metalPitch> <cppWidth> <siteName> <mpoMode>\n\n")
+    print("         metalPitch: int")
+    print("         cppWidth  : int")
+    print("         siteName  : string")
+    print("         mpoMode   : 2/3/MAX\n")
+    print("Example: ")
+    print("         python generate_cfet.py 24 42 coreSite 2")
+    sys.exit(1)
 
-if len(sys.argv) >= 6:
-  inputDir = sys.argv[5]
-  outputDir = sys.argv[6]
+  if len(sys.argv) >= 6:
+    inputDir = sys.argv[5]
+    outputDir = sys.argv[6]
 
-print(inputDir)
-print(outputDir)
-fileList = os.listdir(inputDir)
-tech = TechInfo(
-  numCpp=0, 
-  numTrack=0, 
-  metalPitch=sys.argv[1], 
-  cppWidth=sys.argv[2], 
-  siteName=sys.argv[3], 
-  bprFlag=BprMode.NONE,
-  mpoFlag=GetMpoFlag(sys.argv[4])
-  )
+  print(inputDir)
+  print(outputDir)
+  fileList = os.listdir(inputDir)
+  tech = TechInfo(
+    numCpp=0, 
+    numTrack=0, 
+    metalPitch=sys.argv[1], 
+    cppWidth=sys.argv[2], 
+    siteName=sys.argv[3], 
+    bprFlag=BprMode.NONE,
+    mpoFlag=GetMpoFlag(sys.argv[4])
+    )
 
-# generate six lef files
-for bprFlag in [BprMode.BPR]:
-  tech.bprFlag = bprFlag
-  GenerateLef(fileList, outputDir, tech)
+  # generate six lef files
+  for bprFlag in [BprMode.BPR]:
+    tech.bprFlag = bprFlag
+    GenerateLef(fileList, outputDir, tech)
 
-# dump cell metrics
-DumpCellMetrics(outputDir)
+  # dump cell metrics
+  DumpCellMetrics(outputDir)
+
+if __name__ == "__main__":
+  main()
