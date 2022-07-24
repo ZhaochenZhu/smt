@@ -114,6 +114,7 @@ class TechInfo:
     self.update(False)
 
   def update(self, isMaxCellWidthUpdate):
+    print("*** this is the numTrack ****", self.numTrack)
     # metal width = metal pitch / 2
     self.metalWidth = int(self.metalPitch/2)
     # Buried Power Rail
@@ -302,7 +303,6 @@ class ObsInfo:
     return retStr
 
 
-
 def GetVddVssPinLefStr(techInfo):
   """_summary_
 
@@ -387,6 +387,9 @@ def GenerateLef(inputFileList, outputDir, techInfo):
       inputFileList (_type_): _description_
       outputDir (_type_): _description_
       techInfo (_type_): _description_
+  
+  Dependency:
+      GetMacroLefStr()
   """  
   ########## Original LEF gen
   lefStr = "VERSION 5.8 ;\n"
@@ -442,10 +445,33 @@ def GenerateLef(inputFileList, outputDir, techInfo):
   f.write(lefStr)
   f.close()
 
+# TODO extract metal layer and via layer information
+def GetMacroLayerStr(conv):
+  pass
+
 def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth): 
-  """
-    Reading .conv file and extract information
-  """
+  """_summary_
+
+  Args:
+      conv (_type_): _description_
+      cellName (_type_): _description_
+      outputDir (_type_): _description_
+      techInfo (_type_): _description_
+      isUseMaxCellWidth (bool): _description_
+  
+  Dependency:
+      GetVddVssPinLefStr()
+      PinSpaceCnt_ADJ()
+      EdgeBasedPinCnt_ADJ()
+      RPACal()
+      PSObjCal()
+      MpoCnt()
+      CalM1TrackPG()
+      CalM2Resource()
+
+  Returns:
+      _type_: _description_
+  """  
   global Cell_metrics_map;
   gridWidth = ""
   insts = []
@@ -728,6 +754,22 @@ def MpoCnt(extpin, extpins, metal1Arr, metal2Arr, metals):
   return (M1_PinMpoCnt, M2_PinMpoCnt)
 
 def RPACal(extpin, extpins, metal1Arr, metal2Arr, metals, POCnt_Map):
+  """_summary_
+
+  Args:
+      extpin (_type_): _description_
+      extpins (_type_): _description_
+      metal1Arr (_type_): _description_
+      metal2Arr (_type_): _description_
+      metals (_type_): _description_
+      POCnt_Map (_type_): _description_
+  
+  Dependency:
+      IsPO()
+
+  Returns:
+      _type_: _description_
+  """  
   cur_netID = extpin.netID
   M1_PinMpoCnt = 0
   M2_PinMpoCnt = 0
@@ -827,6 +869,7 @@ def IsExtPin (netID, extpins):
   return 0
 
 # ICCAD version: PS 1 objective cnt
+# NOT USED CURRENTLY
 def PinSpaceCnt(extpin, extpins, metal1Arr, metal2Arr, metals):
   cur_netID = extpin.netID
   M1_PinMpoCnt = 0
@@ -859,36 +902,35 @@ def PinSpaceCnt(extpin, extpins, metal1Arr, metal2Arr, metals):
     return -1
 
 # ICCAD version PS1 objective
-#def PinSpaceCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
-#  cur_netID = extpin.netID
-#  M1_PinMpoCnt = 0
-#  M2_PinMpoCnt = 0
-#  # Design Rule Definition
-#  MAR = 2
-#  EOL = 0
-#  # Check Metal1 first
-#  total_pin_space = 0
-#  num_pin_shape = 0
-#  for metal_pin in metal1Arr:
-#      pin_space = 2
-#      for metal in metals:
-#         #found = -1
-#         # Check Metal1: Since gear ratio is 1:1, with MAR=1, EOL=0 it is accesible
-#         if metal.netID != cur_netID and metal.layer == 3 and abs(metal.toCol - metal_pin.toCol) <= MAR+EOL \
-#            and IsExtPin(metal.netID, extpins) == 1:
-#            #found = 1
-#            at_least_one_pin = 1
-#            # Overlapping
-#            if (metal.toRow >= metal_pin.toRow and metal.fromRow <= metal_pin.toRow) or \
-#              (metal.toRow >= metal_pin.fromRow and metal.fromRow <= metal_pin.fromRow):
-#               pin_space = pin_space-1
-#            #pin_space = vspace + hspace
-#      
-#      total_pin_space = total_pin_space + pin_space
-#      num_pin_shape = num_pin_shape + 1
-#  
-#  return float(total_pin_space/num_pin_shape)
-
+def _PinSpaceCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
+ cur_netID = extpin.netID
+ M1_PinMpoCnt = 0
+ M2_PinMpoCnt = 0
+ # Design Rule Definition
+ MAR = 2
+ EOL = 0
+ # Check Metal1 first
+ total_pin_space = 0
+ num_pin_shape = 0
+ for metal_pin in metal1Arr:
+     pin_space = 2
+     for metal in metals:
+        #found = -1
+        # Check Metal1: Since gear ratio is 1:1, with MAR=1, EOL=0 it is accesible
+        if metal.netID != cur_netID and metal.layer == 3 and abs(metal.toCol - metal_pin.toCol) <= MAR+EOL \
+           and IsExtPin(metal.netID, extpins) == 1:
+           #found = 1
+           at_least_one_pin = 1
+           # Overlapping
+           if (metal.toRow >= metal_pin.toRow and metal.fromRow <= metal_pin.toRow) or \
+             (metal.toRow >= metal_pin.fromRow and metal.fromRow <= metal_pin.fromRow):
+              pin_space = pin_space-1
+           #pin_space = vspace + hspace
+     
+     total_pin_space = total_pin_space + pin_space
+     num_pin_shape = num_pin_shape + 1
+ 
+ return float(total_pin_space/num_pin_shape)
 
 # TVLSI version PS1 objective-> when col == 0 -> always set to 0
 # This is maximize objective: PS_obj
@@ -1041,6 +1083,9 @@ def DumpCellMetrics(outputDir):
 # v4.0: Adjutst M2 left and right extension 0.009um; It is still consistent with the FEOL grid-based assumption.
 # ==============================================================================================================
 def main():
+  global fileList
+  global inputDir
+  global outputDir
   inputDir = "./input_cfet_exp1_pinfix/"
   outputDir = "./output_cfet/"
 
@@ -1072,6 +1117,11 @@ def main():
     )
 
   # generate six lef files
+  # GenerateLef => GetMacroLefStr => GetVddVssPinLefStr
+  # PinSpaceCnt => IsExtPin
+  # RPACal => IsExtPin
+  # PinSpaceCnt_ADJ => IsExtPin
+  # EdgeBasedPinCnt_ADJ => IsExtPin
   for bprFlag in [BprMode.BPR]:
     tech.bprFlag = bprFlag
     GenerateLef(fileList, outputDir, tech)

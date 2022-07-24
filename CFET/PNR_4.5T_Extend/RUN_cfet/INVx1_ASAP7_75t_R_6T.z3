@@ -2550,25 +2550,25 @@ sat
     false)
   (define-fun M2_TRACK_0 () Bool
     false)
+  (define-fun M_m1r2c4_pinMM0_1 () Bool
+    false)
   (define-fun M_m1r1c4_pinMM0_1 () Bool
+    false)
+  (define-fun M_m1r2c1_pinMM0_2 () Bool
+    false)
+  (define-fun M_m1r1c1_pinMM0_2 () Bool
+    false)
+  (define-fun M_m1r1c3_pinMM0_2 () Bool
     false)
   (define-fun M_m1r2c3_pinMM0_2 () Bool
     false)
   (define-fun M_m1r1c2_pinMM0_1 () Bool
     false)
-  (define-fun M_m1r2c4_pinMM0_1 () Bool
-    false)
-  (define-fun M_m1r1c3_pinMM0_2 () Bool
+  (define-fun M_m1r2c5_pinMM0_2 () Bool
     false)
   (define-fun M_m1r2c2_pinMM0_1 () Bool
     false)
-  (define-fun M_m1r1c1_pinMM0_2 () Bool
-    false)
-  (define-fun M_m1r2c1_pinMM0_2 () Bool
-    false)
   (define-fun M_m1r1c5_pinMM0_2 () Bool
-    false)
-  (define-fun M_m1r2c5_pinMM0_2 () Bool
     false)
   (define-fun M_m3r2c6_pinSON () Bool
     true)
@@ -3695,7 +3695,7 @@ sat
 (:eliminated-vars         462
  :max-memory              56.36
  :memory                  55.98
- :num-allocs              175200106
+ :num-allocs              175200114
  :pb-conflicts            18
  :pb-lemmas               3
  :pb-propagations         3484
@@ -3724,5 +3724,5 @@ sat
  :sat-subs-resolution-dyn 310
  :sat-subsumed            525
  :sat-units               1957
- :time                    0.14
- :total-time              0.17)
+ :time                    0.13
+ :total-time              0.16)
