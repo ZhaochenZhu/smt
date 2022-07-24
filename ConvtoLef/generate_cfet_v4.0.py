@@ -3,6 +3,7 @@ import sys
 import os.path
 
 from enum import Enum
+# LEF ref: http://coriolis.lip6.fr/doc/lefdef/lefdefref/OptimizingLEFTechnology.html
 
 Cell_metrics_map = {}
 
@@ -53,6 +54,21 @@ class Metal:
         % (techInfo.getLx(self.fromCol, self.layer), techInfo.getLy(self.fromRow), \
         techInfo.getUx(self.toCol, self.layer), techInfo.getUy(self.toRow))
     return retStr
+
+  # TODO parse layer orientation
+  def getLayerOrient(self):
+    # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
+    if self.layer % 2 == 0:
+      return "HORIZONTAL"
+    else:
+      return "VERTICAL"
+  
+  # TODO parse metal layer information
+  def getLefLayerStr(self, techInfo):
+    resStr = ""
+    resStr += "LAYER metal%d\n  TYPE ROUTING ;\n  WIDTH %.3f ;\n  SPACING %.3f ;\n  PITCH %.3f ;\n  DIRECTION %s ;\n\nEND metal%d\n" \
+      % (self.layer, techInfo.getWidth()/1000, techInfo.getSpacing()/1000, techInfo.getPitch()/1000, self.getLayerOrient(), self.layer)
+    return resStr
 
 class Via:
   def __init__(self, fromMetal, toMetal, x, y, netID):
@@ -158,6 +174,16 @@ class TechInfo:
     #  calVal += (self.metalPitch/2.0)/1000.0
 
     return calVal
+
+  # TODO get Metal info
+  def getPitch(self):
+    return self.metalPitch
+
+  def getWidth(self):
+    return self.metalWidth
+
+  def getSpacing(self):
+    return self.metalPitch - self.metalWidth
 
   def getUx(self, val, layer):
     if layer == 3:
@@ -445,10 +471,6 @@ def GenerateLef(inputFileList, outputDir, techInfo):
   f.write(lefStr)
   f.close()
 
-# TODO extract metal layer and via layer information
-def GetMacroLayerStr(conv):
-  pass
-
 def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth): 
   """_summary_
 
@@ -513,12 +535,12 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     elif words[0] == "METAL":
       metals.append( 
                     Metal(
-                      words[1], 
-                      words[2], 
-                      words[3],
-                      words[4],
-                      words[5],
-                      words[6])
+                      layer=words[1], 
+                      fromRow=words[2], 
+                      fromCol=words[3],
+                      toRow=words[4],
+                      toCol=words[5],
+                      netID=words[6])
                     )
     elif words[0] == "VIA":
       vias.append( Via(words[1], words[2], words[3], words[4], words[5]) )
@@ -663,6 +685,10 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
       techInfo.cellWidth
   
   print("CellName: ", cellName, "cellWidth: ", cellWidth)
+
+  # TODO print Metal layer info
+  for metalInfo in metals:
+    print(metalInfo.getLefLayerStr(techInfo))
 
   lefStr = ""
   lefStr += "MACRO %s\n" % (cellName)
