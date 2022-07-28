@@ -76,8 +76,14 @@ if ($ARGC != 2) {
     print "\n   [USAGE]: ./PL_FILE [inputfile_spfile] [numTrackV Offset]\n\n";
     exit(-1);
 } else {
+	print Dumper \@ARGV;
     $infile             = $ARGV[0];
     $sizeOffset         = $ARGV[1];
+
+	if ($ARGC > 2) {
+		@mapTrackH = sub { @_[2..$#_] }->(@ARGV);
+	}
+	print "Metal Layer Tracks: ", Dumper \@mapTrackH, "\n";
 }
 
 if (!-e "$infile") {
@@ -268,6 +274,7 @@ while (<$in>) {
 	print "a     Width of Routing Clip    = ".($sizeNMOS>$sizePMOS?$sizeNMOS:$sizePMOS)."\n";
 	print "a     Height of Routing Clip   = $numClip\n";
 	print "a     Tracks per Placement Row = $numTrackH\n";
+	# if using different gear ratio
 	print "a     Width of Placement Clip  = ".($sizeNMOS>$sizePMOS?$sizeNMOS:$sizePMOS)."\n";
 	print "a     Tracks per Placement Clip = $numPTrackH\n";
 	open (my $out, '>', $outfile);
