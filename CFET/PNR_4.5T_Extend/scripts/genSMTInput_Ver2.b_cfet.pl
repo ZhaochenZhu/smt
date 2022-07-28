@@ -809,37 +809,292 @@ my $loCol = 0;
 
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
-for my $metal (1 .. $numMetalLayer) { 
+for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
 	# get current metal layer
-	$offset = $mapOffSet{$metal}
-	$mp = $mapMP{$metal};
+	$offset = $mapOffSet{$metal};
+	$MP = $mapMP{$metal};
 
 	if ($metal == 1) {
-		$upmp = $mapMP{$metal + 1};
+		# vertical
+		$upMP = $mapMP{$metal + 1}; # < -- for row
 		$upOffset = $mapOffSet{$metal + 1};
-		$lomp = 0;
+		$loMP = 0;
 		$loOffset = 0;
+		
+		$row = $upOffset; # <-- start from bottom (M2)
+		$col = $offset; # < --- start from left (M1)
+		while($row <= $std_height) { 
+			while ($col <= $std_width) {
+				# col jumps by upper 
+				$vName = "m".$metal."r".$row."c".$col;
+					
+				if ($col == $upOffset) { ### Left Vertex
+					$vL = "null";
+				} 
+				else {
+					$vL = "m".$metal."r".$row."c".($col-$MP);
+				}
+
+				if ($col == $std_width || $col + $MP > $std_width) { ### Right Vertex
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($col+$MP);
+				}
+
+				if ($row == $offset) { ### Front Vertex (start from bottom)
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($row-$upMP)."c".$col;
+				}
+				
+				if ($row == $std_height || $row + $upMP > $std_height) { ### Back Vertex (start from bottom)
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row+$upMP)."c".$col;
+				}
+
+				# No change
+				if ($metal == $numMetalLayer) { ### Up Vertex
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$col;
+				}
+
+				# No change
+				if ($metal == 1) { ### Down Vertex
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$col;
+				}
+
+				if ($row == $upOffset || $col == $offset) { ### FL Vertex
+					$vFL = "null";
+				}
+				else {
+					$vFL = "m".$metal."r".($row-$upMP)."c".($col-$MP);
+				}
+
+				if ($row == $upOffset || $col == $std_width || $col + $MP > $std_width) { ### FR Vertex
+					$vFR = "null";
+				}
+				else {
+					$vFR = "m".$metal."r".($row-$upMP)."c".($col+$MP);
+				}
+
+				if ($row == $std_height || $row + $upMP > $std_height || $col == 0) { ### BL Vertex
+					$vBL = "null";
+				}
+				else {
+					$vBL = "m".$metal."r".($row+$upMP)."c".($col-$MP);
+				}
+
+				if ($row == $std_height || $row + $upMP > $std_height || $col == $std_width || $col + $MP > $std_width) { ### BR Vertex
+					$vBR = "null";
+				}
+				else {
+					$vBR = "m".$metal."r".($row+$upMP)."c".($col+$MP);
+				}
+				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
+				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
+				$vertices{$vName} = [@vertex];
+				$vIndex++;
+			}
+			$row += $upMP;
+			$col += $MP;
+		}
 	} 
-	elsif ($metal == 4) {
-		$upmp = 0;
-		$upOffset = 0;
-		$lomp = $mapMP{$metal - 1};
+	elsif ($metal == 2) {
+		# horizontal
+		$upMP = $mapMP{$metal + 1};
+		$upOffset = $mapOffSet{$metal + 1};
+		$loMP = $mapMP{$metal - 1};
+		$loOffset = $mapOffSet{$metal - 1};
+
+		$row = $offset;
+		# jump by both upper and lower MP
+		$upCol = $upOffset;
+		$loCol = $loOffset;
+		while($row <= $std_height) { 
+			while ($upCol <= $std_width) {
+				$vName = "m".$metal."r".$row."c".$upCol;
+				if ($upCol == $upOffset) { ### Left Vertex
+					$vL = "null";
+				} 
+				else {
+					$vL = "m".$metal."r".$row."c".($upCol-$upMP);
+				}
+
+				if ($upCol == $std_width || $upCol + $upMP > $std_width) { ### Right Vertex
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($upCol+$upMP);
+				}
+
+				if ($row == $offset) { ### Front Vertex
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($row-$MP)."c".$upCol;
+				}
+
+				if ($row == $std_height || $row + $MP > $std_height) { ### Back Vertex
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row+$MP)."c".$upCol;
+				}
+				# No change
+				if ($metal == $numMetalLayer) { ### Up Vertex
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$upCol;
+				}
+
+				# No change
+				if ($metal == 1) { ### Down Vertex
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$upCol;
+				}
+				
+				if ($row == $offset || $upCol == $upOffset) { ### FL Vertex
+					$vFL = "null";
+				}
+				else {
+					$vFL = "m".$metal."r".($row-$MP)."c".($upCol-$upMP);
+				}
+
+				if ($row == $offset || $upCol == $std_width || $upCol + $upMP > $std_width) { ### FR Vertex
+					$vFR = "null";
+				}
+				else {
+					$vFR = "m".$metal."r".($row-$MP)."c".($upCol+$upMP);
+				}
+				if ($row == $std_height || $row + $MP > $std_height || $upCol == $upOffset) { ### BL Vertex
+					$vBL = "null";
+				}
+				else {
+					$vBL = "m".$metal."r".($row+$MP)."c".($upCol-$upMP);
+				}
+				if ($row == $std_height || $row + $MP > $std_height || $upCol == $std_width || $upCol + $upMP > $std_width) { ### BR Vertex
+					$vBR = "null";
+				}
+				else {
+					$vBR = "m".$metal."r".($row+$MP)."c".($col+$upMP);
+				}
+				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
+				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
+				$vertices{$vName} = [@vertex];
+				$vIndex++;
+			}
+
+			while ($loCol <= $std_width) {
+				$vName = "m".$metal."r".$row."c".$loCol;
+				if ($loCol == $upOffset) { ### Left Vertex
+					$vL = "null";
+				} 
+				else {
+					$vL = "m".$metal."r".$row."c".($loCol-$upMP);
+				}
+
+				if ($loCol == $std_width || $loCol + $upMP > $std_width) { ### Right Vertex
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($loCol+$upMP);
+				}
+
+				if ($row == $offset) { ### Front Vertex
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($row-$MP)."c".$loCol;
+				}
+
+				if ($row == $std_height || $row + $MP > $std_height) { ### Back Vertex
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row+$MP)."c".$loCol;
+				}
+				# No change
+				if ($metal == $numMetalLayer) { ### Up Vertex
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$loCol;
+				}
+
+				# No change
+				if ($metal == 1) { ### Down Vertex
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$loCol;
+				}
+				
+				if ($row == $offset || $loCol == $upOffset) { ### FL Vertex
+					$vFL = "null";
+				}
+				else {
+					$vFL = "m".$metal."r".($row-$MP)."c".($loCol-$upMP);
+				}
+
+				if ($row == $offset || $loCol == $std_width || $loCol + $upMP > $std_width) { ### FR Vertex
+					$vFR = "null";
+				}
+				else {
+					$vFR = "m".$metal."r".($row-$MP)."c".($loCol+$upMP);
+				}
+				if ($row == $std_height || $row + $MP > $std_height || $loCol == $upOffset) { ### BL Vertex
+					$vBL = "null";
+				}
+				else {
+					$vBL = "m".$metal."r".($row+$MP)."c".($loCol-$upMP);
+				}
+				if ($row == $std_height || $row + $MP > $std_height || $loCol == $std_width || $loCol + $upMP > $std_width) { ### BR Vertex
+					$vBR = "null";
+				}
+				else {
+					$vBR = "m".$metal."r".($row+$MP)."c".($loCol+$upMP);
+				}
+				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
+				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
+				$vertices{$vName} = [@vertex];
+				$vIndex++;
+			}
+		}
+	}
+	elsif ($metal == 3) {
+		# vertical
+		$upMP = $mapMP{$metal + 1};
+		$upOffset = $mapOffSet{$metal + 1};
+		$loMP = $mapMP{$metal - 1};
 		$loOffset = $mapOffSet{$metal - 1};
 	}
-	else {
-		$upmp = $mapMP{$metal + 1};
-		$upOffset = $mapOffSet{$metal + 1};
-		$lomp = $mapMP{$metal - 1};
+	elsif ($metal == 4) {
+		# horizontal
+		$upMP = 0;
+		$upOffset = 0;
+		$loMP = $mapMP{$metal - 1};
 		$loOffset = $mapOffSet{$metal - 1};
 	}
 
 	# start from offset
-	$row = $offset
-	$col = $offset
+	$row = $offset;
+	$col = $offset;
 	# define boundary
 	while($row <= $std_height) { 
 		while ($col <= $std_width) {
-			
+			# col jumps by upper 
 			$vName = "m".$metal."r".$row."c".$col;
 			if ($col == 0) { ### Left Vertex
 				$vL = "null";
