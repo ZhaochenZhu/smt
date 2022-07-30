@@ -809,6 +809,7 @@ my $loCol = 0;
 
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
+# TODO 
 for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
 	# get current metal layer
 	$offset = $mapOffSet{$metal};
@@ -903,9 +904,10 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
 				$vertices{$vName} = [@vertex];
 				$vIndex++;
+
+				$col += $MP; # jump to next col
 			}
-			$row += $upMP;
-			$col += $MP;
+			$row += $upMP; # jump to next row
 		}
 	} 
 	elsif ($metal == 2) {
@@ -914,12 +916,13 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 		$upOffset = $mapOffSet{$metal + 1};
 		$loMP = $mapMP{$metal - 1};
 		$loOffset = $mapOffSet{$metal - 1};
-
+		# horizontal = row-based iteration
 		$row = $offset;
-		# jump by both upper and lower MP
+		# jump by both upper and lower layer MP
 		$upCol = $upOffset;
 		$loCol = $loOffset;
 		while($row <= $std_height) { 
+			# vertices w.r.t upper adjacent layer
 			while ($upCol <= $std_width) {
 				$vName = "m".$metal."r".$row."c".$upCol;
 				if ($upCol == $upOffset) { ### Left Vertex
@@ -994,8 +997,10 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
 				$vertices{$vName} = [@vertex];
 				$vIndex++;
-			}
 
+				$upCol += $upMP; # jump to next col
+			}
+			# vertices w.r.t lower adjacent layer
 			while ($loCol <= $std_width) {
 				$vName = "m".$metal."r".$row."c".$loCol;
 				if ($loCol == $upOffset) { ### Left Vertex
@@ -1070,7 +1075,11 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
 				$vertices{$vName} = [@vertex];
 				$vIndex++;
+
+				$loCol += $loMP; # jump to next col
 			}
+
+			$row += $MP	# jump to next row
 		}
 	}
 	elsif ($metal == 3) {
@@ -1079,6 +1088,67 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 		$upOffset = $mapOffSet{$metal + 1};
 		$loMP = $mapMP{$metal - 1};
 		$loOffset = $mapOffSet{$metal - 1};
+		# vertical = col-based iteration
+		$col = $offset;
+		# jump by both upper and lower layer MP
+		$upRow = $upOffset;
+		$loRow = $loOffset;
+		while($col <= $std_width) {
+			while ($upRow <= $std_height) {
+				$vName = "m".$metal."r".$upRow."c".$col;
+				if ($col == $offset) { ### Left Vertex
+					$vL = "null";
+				} 
+				else {
+					$vL = "m".$metal."r".$upRow."c".($col-$MP);
+				}
+
+				if ($col == $std_width || $col + $MP > $std_width) { ### Right Vertex
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($col+$MP);
+				}
+
+				if ($upRow == $offset) { ### Front Vertex
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($upRow-$upMP)."c".$col;
+				}
+				
+				if ($row == $std_height || $row + $MP > $std_height) { ### Back Vertex
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row+$MP)."c".$col;
+				}
+
+				# No change
+				if ($metal == $numMetalLayer) { ### Up Vertex
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$upCol;
+				}
+
+				# No change
+				if ($metal == 1) { ### Down Vertex
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$upCol;
+				}
+
+			}
+
+			while ($loRow <= $std_height) {
+				$vName = "m".$metal."r".$loRow."c".$col;
+			}
+
+			$col += $MP	# jump to next row
+		}
+
 	}
 	elsif ($metal == 4) {
 		# horizontal

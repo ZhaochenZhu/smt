@@ -78,6 +78,26 @@ my $dummy_sd_struct_flag = "Split"; #Identify Dummy structure as Split or Share
 # CFET PFET/NFET control
 my $stack_struct_flag = "PN"; #Identify PFET on NFET [PN] or NFET on PFET [NP] ; ICCAD=PN
 
+# metal pitch per layer
+my %mapMP = (
+	1 => 1,
+	2 => 2,
+	3 => 2,
+	4 => 3	
+);
+# offset per layer
+my %mapOffSet = (
+	1 => 2, 
+	2 => 2, 
+	3 => 1, 
+	4 => 1
+);
+
+# standard cell dimension
+my $std_width = 10;
+my $std_height = 10;
+
+
 #my @mapTrack = ([0,5], [1,4], [2,4], [3,1], [4,1], [5,0]);  # Placement vs. Routing Horizontal Track Mapping Array [Placement, Routing]
 #my @mapTrack = ([0,5], [1,4]);  # Placement vs. Routing Horizontal Track Mapping Array [Placement, Routing]
 my @mapTrack = ([0,3], [1,0]);  # CFET 4 tracks can be used to routing. 2 nanosheets => mapping to top and bottom tracks 
@@ -769,11 +789,400 @@ my $vFR = "";
 my $vBL = "";
 my $vBR = "";
 
+# YW: for gear ratio temp variable
+my $MP = 0;		# curr metal mp
+my $upMP = 0;	# upper metal mp
+my $loMP = 0;	# lower metal mp
+
+# offset always perpendicular to metal direction
+
+my $row = 0;	# abs coordinate as row
+my $col = 0;	# abs coordinate as col
+
+my $upRow = 0;
+my $loRow = 0;
+
+my $upCol = 0;
+my $loCol = 0;
+
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
-for my $metal (1 .. $numMetalLayer) { 
-	for my $row (0 .. $numTrackH-3) { # horiztonal dir
-		for my $col (0 .. $numTrackV-1) { # vertical dir
+# TODO 
+for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
+	# get current metal layer
+	$MP = $mapMP{$metal};
+
+	if ($metal == 1) {
+		# vertical Metal direction (col-based)
+		my $horOffset = $mapOffSet{$metal};
+		my $verOffset = $mapOffSet{$metal + 1};
+
+		# M2 Metal Pitch
+		$upMP = $mapMP{$metal + 1}; 
+
+		# No Lower Metal at M1
+		$loMP = 0;
+		
+		$row = $horOffset;	# row offset horiztonally --- x
+		$col = $verOffset;  # col offset vertically | y
+
+		while ($col < $std_width) {
+			# vertices w.r.t upper adjacent layer
+			while ($row < $std_height) {
+				# Current vertex
+				$vName = "m".$metal."r".$row."c".$col;
+				# Left Vertex, horiztontal direction
+				if ($col == $verOffset) { 
+					# if at vertical Offset, do nothing
+					$vL = "null";
+				} 
+				else {
+					$vL = "m".$metal."r".$row."c".($col-$MP);
+				}
+
+				# Right Vertex, horizontal direction
+				if ($col + $MP > $std_width) {
+					# if at vertical Offset, do nothing
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($col+$MP);
+				}
+				
+				# Front Vertex, vertical direction, look at row
+				if ($row == $horOffset) {
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($row-$upMP)."c".$col;
+				}
+
+				# Back Vertex
+				if ($row + $upMP > $std_height) {
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row+$upMP)."c".$col;
+				}
+
+				if ($metal == $numMetalLayer) { ### Up Vertex
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$col;
+				}
+
+				if ($metal == 1) { ### Down Vertex
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$col;
+				}
+
+				$row += $upMP; # row abid to M2
+			}
+
+			$col += $MP;
+		}
+	}
+	elsif ($metal % 2 == 0) {
+		# horizontal Metal direction (row-based)
+		my $horOffset = $mapOffSet{$metal};
+		my $upVerOffset = $mapOffSet{$metal + 1};
+		my $loVerOffset = $mapOffSet{$metal - 1};
+
+		# M3 Metal Pitch, vertical col
+		$upMP = $mapMP{$metal + 1}; 
+
+		# M1 Metal Pitch, vertical col
+		$loMP = $mapMP{$metal - 1}; 
+		
+		$row = $horOffset;	# row offset horiztonally --- x
+		$upCol = $upVerOffset;  # col offset vertically | y
+		$loCol = $loVerOffset;  # col offset vertically | y
+
+		while($row < $std_height) {
+			# horiztontal w.r.t upper adjacent layer
+			while ($upCol < $std_width) {
+				$vName = "m".$metal."r".$row."c".$upCol;
+				# Left Vertex, horiztontal direction
+				if ($upCol == $upVerOffset) { 
+					# if at vertical Offset, do nothing
+					$vL = "null";
+				}
+				else {
+					$vL = "m".$metal."r".$row."c".($upCol-$MP);
+				}
+				
+				# Right Vertex, horizontal direction
+				if ($upCol + $upMP > $std_width) {
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($upCol+$upMP);
+				}
+
+				# Front Vertex, vertical direction, look at row
+				if ($row == $horOffset) {
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($row-$MP)."c".$upCol;
+				}
+				
+				# Back Vertex, vertical direction, look at row
+				if ($row + $MP > $std_height) {
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row + $MP)."c".$upCol;
+				}
+
+				# No change
+				if ($metal == $numMetalLayer) { ### Up Vertex
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$upCol;
+				}
+
+				# No change
+				if ($metal == 1) { ### Down Vertex
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$upCol;
+				}
+				
+				# FL Vertex, horizonal/vertical direction
+				if ($row == $horOffset || $upCol == $upVerOffset) {
+					$vFL = "null";
+				}
+				else {
+					$vFL = "m".$metal."r".($row-$MP)."c".($upCol-$upMP);
+				}
+
+				# FR Vertex, horizonal/vertical direction
+				if ($row == $horOffset || $upCol + $upMP > $std_width) {
+					$vFR = "null";
+				}
+				else {
+					$vFR = "m".$metal."r".($row-$MP)."c".($upCol+$upMP);
+				}
+
+				# BL Vertex, horizonal/vertical direction
+				if ($row + $MP > $std_height || $upCol == $upVerOffset) {
+					$vBL = "null";
+				}
+				else {
+					$vBL = "m".$metal."r".($row+$MP)."c".($upCol-$upMP);
+				}
+
+				# BR Vertex, horizonal/vertical direction
+				if ($row + $MP > $std_height || $upCol + $upMP > $std_width) {
+					$vBR = "null";
+				}
+				else {
+					$vBR = "m".$metal."r".($row+$MP)."c".($col+$upMP);
+				}
+
+				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
+				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
+				$vertices{$vName} = [@vertex];
+				$vIndex++;
+
+				# jump to next col
+				$upCol += $upMP; 
+			}
+
+			# vertices w.r.t lower adjacent layer
+			while ($loCol < $std_width) {
+				$vName = "m".$metal."r".$row."c".$loCol;
+				# Left Vertex, horiztontal direction
+				if ($loCol == $loVerOffset) {
+					$vL = "null";
+				}
+				else {
+					$vL = "m".$metal."r".$row."c".($loCol-$loMP);
+				}
+
+				# Right Vertex, horiztontal direction
+				if ($loCol + $upMP > $std_width) {
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($loCol+$loMP);
+				}
+
+				# Front Vertex
+				if ($row == $horOffset) {
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($row-$MP)."c".$loCol;
+				}
+
+				# Back Vertex
+				if ($row + $MP > $std_height) {
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row+$MP)."c".$loCol;
+				}
+
+				# No change
+				# Up Vertex
+				if ($metal == $numMetalLayer) {
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$loCol;
+				}
+
+				# No change
+				# Down Vertex
+				if ($metal == 1) {
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$loCol;
+				}
+				
+				# FL Vertex
+				if ($row == $horOffset || $loCol == $loVerOffset) {
+					$vFL = "null";
+				}
+				else {
+					$vFL = "m".$metal."r".($row-$MP)."c".($loCol-$loMP);
+				}
+
+				# FR Vertex
+				if ($row == $horOffset || $loCol + $loMP > $std_width) {
+					$vFR = "null";
+				}
+				else {
+					$vFR = "m".$metal."r".($row-$MP)."c".($loCol+$loMP);
+				}
+
+				# BL Vertex
+				if ($row + $MP > $std_height || $loCol == $loVerOffset) { 
+					$vBL = "null";
+				}
+				else {
+					$vBL = "m".$metal."r".($row+$MP)."c".($loCol-$loMP);
+				}
+
+				# BR Vertex
+				if ($row + $MP > $std_height || $loCol + $loMP > $std_width) {
+					$vBR = "null";
+				}
+				else {
+					$vBR = "m".$metal."r".($row+$MP)."c".($loCol+$loMP);
+				}
+
+				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
+				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
+				$vertices{$vName} = [@vertex];
+				$vIndex++;
+
+				$loCol += $loMP; # jump to next col
+			}
+
+			$row += $MP	# jump to next row
+		}
+	}
+	elsif ($metal % 2 != 0) {
+		# vertical Metal direction (col-based)
+		my $verOffset = $mapOffSet{$metal};
+		my $upHorOffset = $mapOffSet{$metal + 1};
+		my $loHorOffset = $mapOffSet{$metal - 1};
+
+		# M4 Metal Pitch, vertical col
+		$upMP = $mapMP{$metal + 1}; 
+
+		# M2 Metal Pitch, vertical col
+		$loMP = $mapMP{$metal - 1}; 
+
+		$col = $verOffset;  # col offset vertically | y
+		$upRow = $upHorOffset;	# row offset horiztonally --- x
+		$loRow = $loHorOffset;	# row offset horiztonally --- x
+
+		while($col < $std_width) {
+			while ($upRow < $std_height) {
+				$vName = "m".$metal."r".$upRow."c".$col;
+				# Left Vertex, horiztontal direction
+				if ($col == $verOffset) {
+					$vL = "null";
+				}
+			    else {
+					$vL = "m".$metal."r".$upRow."c".($col-$MP);
+				}
+
+				# Right Vertex, horizontal direction
+				if ($col == $std_width || $col + $MP > $std_width) {
+					$vR = "null";
+				}
+				else {
+					$vR = "m".$metal."r".$row."c".($col+$MP);
+				}
+
+				# Front Vertex
+				if ($upRow == $upHorOffset) {
+					$vF = "null";
+				}
+				else {
+					$vF = "m".$metal."r".($upRow-$upMP)."c".$col;
+				}
+
+				# Back Vertex
+				if ($row == $std_height || $row + $MP > $std_height) {
+					$vB = "null";
+				}
+				else {
+					$vB = "m".$metal."r".($row+$MP)."c".$col;
+				}
+
+				# No change
+				if ($metal == $numMetalLayer) { ### Up Vertex
+					$vU = "null";
+				}
+				else {
+					$vU = "m".($metal+1)."r".$row."c".$upCol;
+				}
+
+				# No change
+				if ($metal == 1) { ### Down Vertex
+					$vD = "null";
+				}
+				else {
+					$vD = "m".($metal-1)."r".$row."c".$upCol;
+				}
+
+			}
+
+			while ($loRow <= $std_height) {
+				$vName = "m".$metal."r".$loRow."c".$col;
+			}
+
+			$col += $MP	# jump to next row
+		}
+
+	}
+	elsif ($metal == 4) {
+		# horizontal
+		$upMP = 0;
+		$upOffset = 0;
+		$loMP = $mapMP{$metal - 1};
+		$loOffset = $mapOffSet{$metal - 1};
+	}
+
+	# start from offset
+	$row = $offset;
+	$col = $offset;
+	# define boundary
+	while($row <= $std_height) { 
+		while ($col <= $std_width) {
+			# col jumps by upper 
 			$vName = "m".$metal."r".$row."c".$col;
 			if ($col == 0) { ### Left Vertex
 				$vL = "null";
