@@ -814,7 +814,7 @@ my $loCol = 0;
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 # TODO 
-print "before iteration\n";
+print "before iteration, $std_height by $std_width\n";
 for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
 	# get current metal layer
 	$MP = $mapMP{$metal};
@@ -836,8 +836,11 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 		$col = $verOffset;  # col offset vertically | y
 
 		while ($col < $std_width) {
+			print "current col at $col\n";
+			$row = $horOffset;
 			# vertices w.r.t upper adjacent layer
 			while ($row < $std_height) {
+				print "current row at $row\n";
 				# Current vertex
 				$vName = "m".$metal."r".$row."c".$col;
 				# Left Vertex, horiztontal direction
@@ -947,6 +950,8 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 			$col = $verOffset;  # col offset vertically | y
 
 			while ($col < $std_width) {
+				# reset row
+				$row = $horOffset;
 				# vertices w.r.t lower adjacent layer
 				while ($row < $std_height) {
 					# Current vertex
@@ -1055,6 +1060,8 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 			$col = $verOffset;  # col offset vertically | y
 
 			while ($row < $std_height) {
+				# reset
+				$col = $verOffset;
 				# vertices w.r.t lower adjacent layer
 				while ($col < $std_width) {
 					# Current vertex
@@ -1167,6 +1174,8 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 
 		while($row < $std_height) {
 			# horiztontal w.r.t upper adjacent layer
+			$upCol = $upVerOffset; 
+			$loCol = $loVerOffset;
 			while ($upCol < $std_width) {
 				$vName = "m".$metal."r".$row."c".$upCol;
 				# Left Vertex, horiztontal direction
@@ -1373,6 +1382,9 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 		$loRow = $loHorOffset;	# row offset horiztonally --- x
 
 		while($col < $std_width) {
+			# reset
+			$upRow = $upHorOffset;	# row offset horiztonally --- x
+			$loRow = $loHorOffset;	# row offset horiztonally --- x
 			while ($upRow < $std_height) {
 				$vName = "m".$metal."r".$upRow."c".$col;
 				# Left Vertex, horiztontal direction
