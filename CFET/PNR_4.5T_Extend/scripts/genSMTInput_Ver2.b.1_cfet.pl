@@ -731,7 +731,6 @@ if ($Partition_Parameter == 2){
 	}
 }
 
-
 print "DDA : numPowerPmos :$numPowerPmos numPowerNmos :$numPowerNmos\n";
 
 ### Remove Power Pin/Net Information from data structure 
@@ -813,7 +812,6 @@ my $loCol = 0;
 
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
-# TODO 
 print "before iteration, $std_height by $std_width\n";
 for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
 	# get current metal layer
@@ -1261,8 +1259,11 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 
 				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
 				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
-				$vertices{$vName} = [@vertex];
-				$vIndex++;
+				# prevent overlapping vertices being repeated created
+				if (!exists $vertices{$vName}) {
+					$vertices{$vName} = [@vertex];
+					$vIndex++;
+				}
 
 				# jump to next col
 				$upCol += $upMP; 
@@ -1355,8 +1356,11 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 
 				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
 				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
-				$vertices{$vName} = [@vertex];
-				$vIndex++;
+				# prevent overlapping vertices being repeated created
+				if (!exists $vertices{$vName}) {
+					$vertices{$vName} = [@vertex];
+					$vIndex++;
+				}
 
 				$loCol += $loMP; # jump to next col
 			}
@@ -1471,8 +1475,11 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 
 				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
 				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
-				$vertices{$vName} = [@vertex];
-				$vIndex++;
+				# prevent overlapping vertices being repeated created
+				if (!exists $vertices{$vName}) {
+					$vertices{$vName} = [@vertex];
+					$vIndex++;
+				}
 
 				$upRow += $upMP; # jump to next row
 			}
@@ -1563,8 +1570,11 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 
 				@vADJ = ($vL, $vR, $vF, $vB, $vU, $vD, $vFL, $vFR, $vBL, $vBR);
 				@vertex = ($vIndex, $vName, $metal, $row, $col, [@vADJ]);
-				$vertices{$vName} = [@vertex];
-				$vIndex++;
+				# prevent overlapping vertices being repeated created
+				if (!exists $vertices{$vName}) {
+					$vertices{$vName} = [@vertex];
+					$vIndex++;
+				}
 
 				$loRow += $loMP; # jump to next row
 			}
