@@ -1585,6 +1585,121 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 	}
 	
 }
-print "**** vertices:\n";
-print Dumper(\%vertices);
+# print "**** vertices:\n";
+# print Dumper(\%vertices);
 #print $out "(minimize METAL_SIZE)\n";
+
+### UNDIRECTED EDGE Generation
+### UNDIRECTED EDGE Variables
+my @udEdges = ();
+my @udEdge = ();
+my $udEdgeTerm1 = "";
+my $udEdgeTerm2 = "";
+my $udEdgeIndex = 0;
+my $udEdgeNumber = -1;
+my $vCost = 4;
+my $mCost = 1;
+my $vCost_1 = 4;
+my $mCost_1 = 1;
+my $vCost_34 = 4;	# Cost for layer 3 and 4
+my $mCost_4 = 1;	# metal cost for layer 4
+my $wCost = 1;		#
+
+foreach my $vName (keys %vertices) {
+	# regex extract vertex information
+	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+	print "metal$metal, row$row, col$col\n";
+	$udEdgeTerm1 = $vName;
+
+	if ($metal % 2 == 0) { # Even Layers ==> Horizontal; 2, 4, 6, ...
+		if ($vertices{$udEdgeTerm1}[5][1] ne "null") { # Right Edge
+			$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][1]; # connects to vR
+			if($metal == 4){
+				# if last metal: 
+				# [index] [v] [vR] 1 1
+				@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost_4, $wCost);
+			}
+			else{
+				# metal 1, 2, 3
+				# [index] [v] [vR] 1 1
+				@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost, $wCost);
+			}
+			#print "@udEdge\n";
+			push (@udEdges, [@udEdge]);
+			$udEdgeIndex++;
+		}
+
+		if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
+			if($col % 2 == 0){
+				# if col is even, construct edge to upper edge
+				$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
+				# [index] [v] [vU] 4 4
+				@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost, $vCost);
+				#print "@udEdge\n";
+				push (@udEdges, [@udEdge]);
+				$udEdgeIndex++;
+			}
+		}
+	}
+	else { # Odd Layers ==> Vertical; 1, 3, 5, ...
+		if($metal > 1 && $col %2 == 1){
+			# if metal is 3, 5, 7... and col is odd, ignore
+			# why col cannot be odd
+			next;
+		}
+
+		# if metal is 1, or col is even
+		if ($vertices{$udEdgeTerm1}[5][3] ne "null") { # Back Edge
+			# if vB exists
+			$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][3];
+			if($metal == 3){
+				# if metal is 3
+				# [index] [v] [vB] 1, 1
+				@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost, $wCost);
+			}
+			else{
+				# if metal is 3
+				# [index] [v] [vB] 1, 1
+				@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $mCost_1, $wCost);
+			}
+			#print "@udEdge\n";
+			push (@udEdges, [@udEdge]);
+			$udEdgeIndex++;
+		}
+
+		if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
+			if($metal == 1){
+				# if metal is 1 and vU exists
+				$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
+				if($metal == 3){
+					@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost_34, $vCost);
+				}
+				else{
+					@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost_1, $vCost);
+				}
+				#print "@udEdge\n";
+				push (@udEdges, [@udEdge]);
+				$udEdgeIndex++;
+			}
+			elsif($col % 2 == 0){
+				# exact same code as above, why???
+				$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
+				if($metal == 3){
+					@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost_34, $vCost);
+				}
+				else{
+					@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost_1, $vCost);
+				}
+				#print "@udEdge\n";
+				push (@udEdges, [@udEdge]);
+				$udEdgeIndex++;
+			}
+		}
+	}
+}
+# my ($hours, $minutes, $seconds) = ($time =~ m/(\d+):(\d+):(\d+)/);
+$udEdgeNumber = scalar @udEdges;
+print "a     # udEdges           = $udEdgeNumber\n";
+
+print "**** udEdges:\n";
+print Dumper(\@udEdges);
