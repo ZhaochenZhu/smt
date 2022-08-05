@@ -290,6 +290,10 @@ my %h_net_track_n = ();
 my %h_net_track_t = ();
 my %h_track_net = ();
 
+### YW
+# [METAL] => [Vertices Name]
+my %map_metal_to_vertices = {};
+
 sub combine;
 sub combine_sub;
 sub getAvailableNumFinger{
@@ -810,6 +814,10 @@ my $loRow = 0;
 my $upCol = 0;
 my $loCol = 0;
 
+# numTrackV and numTrackH for each layer
+my %map_numTrackV = {};
+my %map_numTrackH = {};
+
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
 print "before iteration, $std_height by $std_width\n";
@@ -820,6 +828,12 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 
 	if ($metal == 1) {
 		print "*****metal 1*****\n";
+		# store layer specific vertices
+		my @temp_vertices = ();
+		# numTrackV and numTrackH
+		my $temp_numTrackV = 0;	#col
+		my $temp_numTrackH = 0;	#row
+		
 		# vertical Metal direction (col-based)
 		my $horOffset = $mapOffSet{$metal};
 		my $verOffset = $mapOffSet{$metal + 1};
@@ -922,16 +936,32 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				$vertices{$vName} = [@vertex];
 				$vIndex++;
 
+				push(@temp_vertices, $vName);
+
 				$row += $upMP; # row abid to M2
+				$temp_numTrackH += 1;
 			}
 
 			$col += $MP;
+			$temp_numTrackV += 1;
 		}
+		$temp_numTrackH /= $temp_numTrackV;
+
+		# map number of metal tracks
+		$map_numTrackV{$metal} = int($temp_numTrackV);
+		$map_numTrackH{$metal} = int($temp_numTrackH);
 		
+		$map_metal_to_vertices{$metal} = [@temp_vertices];
 	}
 	elsif ($metal == $numMetalLayer) {
 		print "*****Last Layer*****\n";
 		# only concern lower level
+
+		my @temp_vertices = ();
+
+		# numTrackV and numTrackH
+		my $temp_numTrackV = 0;	#col
+		my $temp_numTrackH = 0;	#row
 
 		# Last layer is odd (vertical, col-based)
 		if ($metal % 2 != 0) {
@@ -1035,12 +1065,17 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 					$vertices{$vName} = [@vertex];
 					$vIndex++;
 
+					push(@temp_vertices, $vName);
 
 					$row += $loMP; # row abid to M2
+					$temp_numTrackH += 1;
 				}
 
 				$col += $MP;
+				$temp_numTrackV += 1;
 			}
+
+			$temp_numTrackH /= $temp_numTrackV;
 
 		}
 		# Last layer is even (horizontal, row-based)
@@ -1146,15 +1181,30 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 					$vertices{$vName} = [@vertex];
 					$vIndex++;
 
+					push(@temp_vertices, $vName);
+
 					$col += $loMP;
+					$temp_numTrackV += 1;
 				}
 				$row += $MP;
+				$temp_numTrackH += 1;
 			}
-			
+			$temp_numTrackV /= $temp_numTrackH;
 		}
+
+		# map number of metal tracks
+		$map_numTrackV{$metal} = int($temp_numTrackV);
+		$map_numTrackH{$metal} = int($temp_numTrackH);
+
+		$map_metal_to_vertices{$metal} = [@temp_vertices];
 	}
 	elsif ($metal % 2 == 0) { # 2, 4, 6, ...
 		print "*****Even Layer*****\n";
+		my @temp_vertices = ();
+		# numTrackV and numTrackH
+		my $temp_numTrackVup = 0;	#upcol
+		my $temp_numTrackVlo = 0;	#lowcol
+		my $temp_numTrackH = 0;	#row
 		# horizontal Metal direction (row-based)
 		my $horOffset = $mapOffSet{$metal};
 		my $upVerOffset = $mapOffSet{$metal + 1};
@@ -1263,6 +1313,9 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				if (!exists $vertices{$vName}) {
 					$vertices{$vName} = [@vertex];
 					$vIndex++;
+					$temp_numTrackVup += 1;
+
+					push(@temp_vertices, $vName);
 				}
 
 				# jump to next col
@@ -1360,16 +1413,35 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				if (!exists $vertices{$vName}) {
 					$vertices{$vName} = [@vertex];
 					$vIndex++;
+					$temp_numTrackVlo += 1;
+
+					push(@temp_vertices, $vName);
 				}
 
 				$loCol += $loMP; # jump to next col
 			}
 
-			$row += $MP	# jump to next row
+			$row += $MP;	# jump to next row
+			$temp_numTrackH += 1;
 		}
+
+		$temp_numTrackVlo /= $temp_numTrackH;
+		$temp_numTrackVup /= $temp_numTrackH;
+
+		# map number of metal tracks
+		$map_numTrackV{$metal} = int($temp_numTrackVlo + $temp_numTrackVup);
+		$map_numTrackH{$metal} = int($temp_numTrackH);
+
+		$map_metal_to_vertices{$metal} = [@temp_vertices];
 	}
 	elsif ($metal % 2 != 0) { # 3, 5, 7... 
 		print "*****Odd Metal*****\n";
+		my @temp_vertices = ();
+		# numTrackV and numTrackH
+		my $temp_numTrackV = 0;	#col
+		my $temp_numTrackHup = 0;	#uprow
+		my $temp_numTrackHlo = 0;	#lorow
+
 		# vertical Metal direction (col-based)
 		my $verOffset = $mapOffSet{$metal};
 		my $upHorOffset = $mapOffSet{$metal + 1};
@@ -1479,6 +1551,9 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				if (!exists $vertices{$vName}) {
 					$vertices{$vName} = [@vertex];
 					$vIndex++;
+					$temp_numTrackHup += 1;
+
+					push(@temp_vertices, $vName);
 				}
 
 				$upRow += $upMP; # jump to next row
@@ -1574,20 +1649,37 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 				if (!exists $vertices{$vName}) {
 					$vertices{$vName} = [@vertex];
 					$vIndex++;
+					$temp_numTrackHlo += 1;
+
+					push(@temp_vertices, $vName);
 				}
 
 				$loRow += $loMP; # jump to next row
 			}
 
-			$col += $MP	# jump to next row
+			$col += $MP;	# jump to next row
+			$temp_numTrackV += 1;
 		}
 
+		$temp_numTrackHlo /= $temp_numTrackV;
+		$temp_numTrackHup /= $temp_numTrackV;
+		# map number of metal tracks
+		$map_numTrackV{$metal} = int($temp_numTrackV);
+		$map_numTrackH{$metal} = int($temp_numTrackHlo + $temp_numTrackHup);
+
+		$map_metal_to_vertices{$metal} = [@temp_vertices];
 	}
 	
 }
-# print "**** vertices:\n";
-# print Dumper(\%vertices);
-#print $out "(minimize METAL_SIZE)\n";
+
+print "**** vertices:\n";
+print Dumper(\%vertices);
+print "**** numTrackV:\n";
+print Dumper(\%map_numTrackV);
+print "**** numTrackH:\n";
+print Dumper(\%map_numTrackH);
+print "**** map_metal_to_vertices:\n";
+print Dumper(\%map_metal_to_vertices);
 
 ### UNDIRECTED EDGE Generation
 ### UNDIRECTED EDGE Variables
@@ -1600,15 +1692,15 @@ my $udEdgeNumber = -1;
 my $vCost = 4;
 my $mCost = 1;
 my $vCost_1 = 4;
-my $mCost_1 = 1;
-my $vCost_34 = 4;	# Cost for layer 3 and 4
-my $mCost_4 = 1;	# metal cost for layer 4
-my $wCost = 1;		#
+my $mCost_1 = 1;	
+my $vCost_34 = 4;	# Via Cost for layer 3 and 4
+my $mCost_4 = 1;	# Metal Cost for layer 4
+my $wCost = 1;		# Wire Cost
 
 foreach my $vName (keys %vertices) {
 	# regex extract vertex information
 	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
-	print "metal$metal, row$row, col$col\n";
+	# print "metal$metal, row$row, col$col\n";
 	$udEdgeTerm1 = $vName;
 
 	if ($metal % 2 == 0) { # Even Layers ==> Horizontal; 2, 4, 6, ...
@@ -1698,8 +1790,50 @@ foreach my $vName (keys %vertices) {
 	}
 }
 # my ($hours, $minutes, $seconds) = ($time =~ m/(\d+):(\d+):(\d+)/);
-$udEdgeNumber = scalar @udEdges;
-print "a     # udEdges           = $udEdgeNumber\n";
+# $udEdgeNumber = scalar @udEdges;
+# print "a     # udEdges           = $udEdgeNumber\n";
 
-print "**** udEdges:\n";
-print Dumper(\@udEdges);
+# print "**** udEdges:\n";
+# print Dumper(\@udEdges);
+
+# YW: deleted commented
+
+### BOUNDARY VERTICES Generation.
+### DATA STRUCTURE:  Single Array includes all boundary vertices to L, R, F, B, U directions.
+my @boundaryVertices = ();
+my $numBoundaries = 0;
+
+### Normal External Pins - Top&second-top layer only
+for my $metal ($numMetalLayer-1 .. $numMetalLayer) { 
+	for my $row (0 .. $numTrackH-3) {
+		for my $col (0 .. $numTrackV-1) {
+			# YW: deleted commented
+			if($metal%2!=0){ # only odd layer
+				if($col%2 == 1){
+					next;
+				}
+
+				# only even column
+				if($EXT_Parameter == 0){ # if not extensible
+#				# YW: deleted commented
+					if ($row == 1 || $row == $numTrackH-4) { # why $numTrackH-4
+						# only 2 rows?
+						push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+					}
+				}
+				else{
+
+					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+				}
+			}
+		}
+	}
+}
+
+### Normal External Pins - Top&second-top layer only
+# loop over top two metal layer
+# record num track
+
+$numBoundaries = scalar @boundaryVertices;
+print "a     # Boundary Vertices = $numBoundaries\n";
+

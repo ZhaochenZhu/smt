@@ -1,5 +1,6 @@
 #!/bin/bash
-export workdir=./CFET/PNR_4.5T_Extend
+export workdir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+export workdir="$workdir/CFET/PNR_4.5T_Extend"
 
 rm -rfv ./pinLayouts_cfet_v2.1 && mkdir pinLayouts_cfet_v2.1
 rm -rfv ./inputsSMT_cfet && mkdir inputsSMT_cfet

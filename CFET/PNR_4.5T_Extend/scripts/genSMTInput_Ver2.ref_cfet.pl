@@ -964,5 +964,60 @@ for my $metal (1 .. $numMetalLayer) {     # Odd Layers: Vertical Direction   Eve
 $udEdgeNumber = scalar @udEdges;
 print "a     # udEdges           = $udEdgeNumber\n";
 
-print "**** udEdges:\n";
-print Dumper(\@udEdges);
+# print "**** udEdges:\n";
+# print Dumper(\@udEdges);
+
+### BOUNDARY VERTICES Generation.
+### DATA STRUCTURE:  Single Array includes all boundary vertices to L, R, F, B, U directions.
+my @boundaryVertices = ();
+my $numBoundaries = 0;
+
+### Normal External Pins - Top&top-1 layer only
+for my $metal ($numMetalLayer-1 .. $numMetalLayer) { 
+	for my $row (0 .. $numTrackH-3) {
+		for my $col (0 .. $numTrackV-1) {
+			if($metal%2==0){
+				if($col%2 == 1){
+					next;
+				}
+#				if($EXT_Parameter == 0){
+##				if ($col%4==0 && $row == $numTrackH-3) {
+##					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+##				}
+##				elsif($col%4!=0 && $row == 0){
+##					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+##				}
+#					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+#				}
+#				else{
+#					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+#				}
+			}
+			else{
+				if($col%2 == 1){
+					next;
+				}
+				if($EXT_Parameter == 0){
+#				if ($col%4==0 && $row == $numTrackH-3) {
+#					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+#				}
+#				elsif($col%4!=0 && $row == 0){
+#					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+#				}
+#if ($row == 0 || $row == $numTrackH-3) {
+					if ($row == 1 || $row == $numTrackH-4) { # why $numTrackH-4
+						push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+					}
+				}
+				else{
+					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+				}
+			}
+		}
+	}
+}
+$numBoundaries = scalar @boundaryVertices;
+print "a     # Boundary Vertices = $numBoundaries\n";
+
+print "**** boundaryVertices:\n";
+print Dumper(\@boundaryVertices);

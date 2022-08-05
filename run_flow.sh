@@ -1,6 +1,7 @@
 #!/bin/bash
 
-export workdir=~/Desktop/Github/smt/CFET/PNR_4.5T_Extend
+export workdir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+export workdir="$workdir/CFET/PNR_4.5T_Extend"
 
 # Step 1
 echo "********** Generating Testcase **********"
