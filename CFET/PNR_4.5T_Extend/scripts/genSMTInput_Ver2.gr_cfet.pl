@@ -4,6 +4,7 @@ use strict 'vars'; # generates a compile-time error if you access a variable wit
 use strict 'refs'; # generates a runtime error if you use symbolic references
 use strict 'subs'; # compile-time error if you try to use a bareword identifier in an improper way.
 use Data::Dumper;
+use warnings;
 use POSIX;
 
 use Cwd;
@@ -822,14 +823,14 @@ my %map_numTrackH = ();
 
 ### DATA STRUCTURE:  VERTEX [index] [name] [Z-pos] [Y-pos] [X-pos] [Arr. of adjacent vertices]
 ### DATA STRUCTURE:  ADJACENT_VERTICES [0:Left] [1:Right] [2:Front] [3:Back] [4:Up] [5:Down] [6:FL] [7:FR] [8:BL] [9:BR]
-print "before iteration, $std_height by $std_width\n";
+# print "before iteration, $std_height by $std_width\n";
 for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
 	# get current metal layer
 	$MP = $mapMP{$metal};
-	print "start iteration\n";
+	# print "start iteration\n";
 
 	if ($metal == 1) {
-		print "*****metal 1*****\n";
+		# print "*****metal 1*****\n";
 		# store layer specific vertices
 		my @temp_vertices = ();
 		# numTrackV and numTrackH
@@ -850,11 +851,11 @@ for my $metal (1 .. $numMetalLayer) {  # Odd Layers: Vertical Direction   Even L
 		$col = $verOffset;  # col offset vertically | y
 
 		while ($col < $std_width) {
-			print "current col at $col\n";
+			# print "current col at $col\n";
 			$row = $horOffset;
 			# vertices w.r.t upper adjacent layer
 			while ($row < $std_height) {
-				print "current row at $row\n";
+				# print "current row at $row\n";
 				# Current vertex
 				$vName = "m".$metal."r".$row."c".$col;
 				# Left Vertex, horiztontal direction
@@ -1793,6 +1794,7 @@ foreach my $vName (keys %vertices) {
 	}
 }
 
+
 # # YW: Debugging
 # $udEdgeNumber = scalar @udEdges;
 # print "a     # udEdges           = $udEdgeNumber\n";
@@ -1807,88 +1809,173 @@ foreach my $vName (keys %vertices) {
 my @boundaryVertices = ();
 my $numBoundaries = 0;
 
-### Normal External Pins - Top&second-top layer only
-for my $metal ($numMetalLayer-1 .. $numMetalLayer) { 
-	for my $row (0 .. $numTrackH-3) {
-		for my $col (0 .. $numTrackV-1) {
-			# YW: deleted commented
-			if($metal%2!=0){ # only odd layer
-				if($col%2 == 1){
-					next;
-				}
+# Second Top layer
+my $metal = $numMetalLayer-1;
+# [METAL] => [Vertices Name ordered by metal direction]
+# Example: Odd layer 		=> 	[m3r[1-10]c1]...
+# Example: Even layer => 	[m4r1c[1-9]]...
 
-				# only even column
-				if($EXT_Parameter == 0){ # if not extensible
-#				# YW: deleted commented
-					if ($row == 1 || $row == $numTrackH-4) { # why $numTrackH-4
-						# only 2 specific rows?
-						push (@boundaryVertices, "m".$metal."r".$row."c".$col);
-					}
-				}
-				else{
-					
-					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
-				}
+my @temp_vertices = @{$map_metal_to_vertices{"$metal"}};
+foreach (@temp_vertices) {
+	# regex extract vertex information
+	my $vName = $_;
+	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+
+	print("iterate m$metal, r$row, c$col\n");
+	# YW: disregard odd layer if statement
+	if($metal%2!=0) { # odd layer: vertical --> col
+		if($col%2 == 1){	# ignore odd col: bc metal pitch?
+			next;
+		}
+		
+		if($EXT_Parameter == 0){ # if not extensible YW: deleted commented
+			my $upOffset =  $mapOffSet{$metal + 1};
+			my $loOffset =  $mapOffSet{$metal - 1};
+			my $upOffMP =  $mapMP{$metal + 1};
+			my $loOffMP =  $mapMP{$metal - 1};
+			# first row: offset
+			my $firstRow = ($upOffset<$loOffset?$upOffset:$loOffset);  # take smaller offset
+			# second row: offset + MP
+			my $secondRow = ($upOffset+$upOffMP<$loOffset+$loOffMP?$upOffset+$upOffMP:$loOffset+$loOffMP);
+			print("firstRow $firstRow, secondRow $secondRow\n");
+			if ($row == $firstRow || $row == $secondRow) { # always perpendicular: why $numTrackH-4
+				# only 2 specific rows?
+				push (@boundaryVertices, "m".$metal."r".$row."c".$col);
 			}
 		}
-	}
-}
-
-### Normal External Pins - Top&second-top layer only
-# loop over top two metal layer
-# record num track
-for my $metal ($numMetalLayer-1 .. $numMetalLayer) {
-	# [METAL] => [Vertices Name ordered by metal direction]
-	# Example: Odd layer 		=> 	[m3r[1-10]c1]...
-	# Example: Even layer => 	[m4r1c[1-9]]...
-
-	# YW: EXT_Parameter=0 current implement choice => limit to first two vertices
-	my $boundary_cnt = 0;
-	
-	for my $vertex ($map_metal_to_vertices{$metal}) {
-		# regex extract vertex information
-		my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
-
-		# YW: disregard odd layer if statement
-		if($metal%2!=0) { # odd layer: vertical --> col
-			if($col%2 == 1){	# ignore odd col: bc metal pitch?
-				next;
-			}
-			
-			if($EXT_Parameter == 0){ # if not extensible
-#				# YW: deleted commented
-				if ($row == 1 || $row == $numTrackH-4) { # always perpendicular: why $numTrackH-4
-					# only 2 specific rows?
-					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
-					$boundary_cnt += 1;
-				}
-			}
-			else{
-				push (@boundaryVertices, "m".$metal."r".$row."c".$col);
-			}
-			
-		} 
-		elsif ($metal%2==0) {	# even layer: horizontal --> row
-			if($row%2 == 1){	# ignore odd row: bc metal pitch?
-				next;
-			}
-
-			if($EXT_Parameter == 0){ # if not extensible
-#				# YW: deleted commented
-				if ($col == 1 || $col == $numTrackV-4) { # why $numTrackH-4
-					# only 2 specific rows?
-					push (@boundaryVertices, "m".$metal."r".$row."c".$col);
-					$boundary_cnt += 1;
-				}
-			}
-			else{
-				push (@boundaryVertices, "m".$metal."r".$row."c".$col);
-			}
+		else{
+			push (@boundaryVertices, "m".$metal."r".$row."c".$col);
 		}
 		
 	} 
-}
+	elsif ($metal%2==0) {	# even layer: horizontal --> row
+		if($row%2 == 1){	# ignore odd row: bc metal pitch?
+			next;
+		}
+
+		if($EXT_Parameter == 0){ # if not extensible
+			my $upOffset =  $mapOffSet{$metal + 1};
+			my $loOffset =  $mapOffSet{$metal - 1};
+			my $upOffMP =  $mapMP{$metal + 1};
+			my $loOffMP =  $mapMP{$metal - 1};
+			# first col: offset
+			my $firstCol = ($upOffset<$loOffset?$upOffset:$loOffset); # take smaller offset
+			# second col: offset + MP
+			my $secondCol = ($upOffset+$upOffMP<$loOffset+$loOffMP?$upOffset+$upOffMP:$loOffset+$loOffMP);
+
+			if ($col == $firstCol || $col == $secondCol) { # why $numTrackH-4
+				# only 2 specific rows?
+				push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+			}
+		}
+		else{
+			push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+		}
+	}
+	
+} 
+
+# Top layer
+$metal = $numMetalLayer;
+# [METAL] => [Vertices Name ordered by metal direction]
+# Example: Odd layer 		=> 	[m3r[1-10]c1]...
+# Example: Even layer => 	[m4r1c[1-9]]...
+my @temp_vertices = @{$map_metal_to_vertices{"$metal"}};
+
+foreach (@temp_vertices) {
+	# regex extract vertex information
+	my $vName = $_;
+	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+
+	print("iterate m$metal, r$row, c$col\n");
+	# YW: disregard odd layer if statement
+	if($metal%2!=0) { # odd layer: vertical --> col
+		if($col%2 == 1){	# ignore odd col: bc metal pitch?
+			next;
+		}
+		
+		if($EXT_Parameter == 0){ # if not extensible
+			# YW: deleted commented
+			my $loOffset =  $mapOffSet{$metal - 1};
+			my $loOffMP =  $mapMP{$metal - 1};
+			# first row: offset
+			my $firstRow = $loOffset;
+			# second row: offset + MP
+			my $secondRow = $loOffset+$loOffMP;
+
+			if ($row == $firstRow || $row == $secondRow) { # always perpendicular: why $numTrackH-4
+				# only 2 specific rows?
+				push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+			}
+		}
+		else{
+			push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+		}
+		
+	} 
+	elsif ($metal%2==0) {	# even layer: horizontal --> row
+		if($row%2 == 1){	# ignore odd row: bc metal pitch?
+			next;
+		}
+
+		if($EXT_Parameter == 0){ # if not extensible
+			# YW: deleted commented
+			my $loOffset =  $mapOffSet{$metal - 1};
+			my $loOffMP =  $mapMP{$metal - 1};
+			# first row: offset
+			my $firstCol = $loOffset;
+			# second row: offset + MP
+			my $secondCol = $loOffset+$loOffMP;
+
+			if ($col == $firstCol || $col == $secondCol) { # why $numTrackH-4
+				# only 2 specific rows?
+				push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+			}
+		}
+		else{
+			push (@boundaryVertices, "m".$metal."r".$row."c".$col);
+		}
+	}
+	
+} 
+
 
 $numBoundaries = scalar @boundaryVertices;
 print "a     # Boundary Vertices = $numBoundaries\n";
+
+# YW: Debugging
+print "**** boundaryVertices:\n";
+print Dumper(\@boundaryVertices);
+
+# [2018-10-15] Store the net information for SON simplifying
+my @outerPins = ();
+my @outerPin = ();
+my %h_outerPin = ();
+my $numOuterPins = 0;
+my $commodityInfo = -1;
+
+for my $pinID (0 .. $#pins) {
+	if ($pins[$pinID][3] == -1) {
+		$commodityInfo = -1;  # Initializing
+		# Find Commodity Infomation
+		for my $netIndex (0 .. $#nets) {
+			if ($nets[$netIndex][0] eq $pins[$pinID][1]){
+				for my $sinkIndexofNet (0 .. $nets[$netIndex][4]){
+					if ( $nets[$netIndex][5][$sinkIndexofNet] eq $pins[$pinID][0]){
+						$commodityInfo = $sinkIndexofNet; 
+					}    
+				}
+			}
+		}
+		if ($commodityInfo == -1){
+			print "ERROR: Cannot Find the commodity Information!!\n\n";
+		}
+		@outerPin = ($pins[$pinID][0],$pins[$pinID][1],$commodityInfo);
+		push (@outerPins, [@outerPin]) ;
+		$h_outerPin{$pins[$pinID][0]} = 1;
+	}
+}
+$numOuterPins = scalar @outerPins;
+
+
 

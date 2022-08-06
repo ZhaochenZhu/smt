@@ -594,7 +594,6 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
        Min_PinMpoCnt = PinMpoCnt
     if PinMpoCnt > Max_PinMpoCnt:
        Max_PinMpoCnt = PinMpoCnt
-    
     Avg_PinMpoCnt = Avg_PinMpoCnt + PinMpoCnt
     Num_Pins = Num_Pins + 1
     #Pin_space = PinSpaceCnt(extpin, extpins, metal1Arr, metal2Arr, metals)
@@ -618,9 +617,9 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     if Pin_cost > Max_PinCost:
        Max_PinCost = Pin_cost
     Avg_PinCost = Avg_PinCost + Pin_cost
-    #print ("Cell: %s Pin: %s Net ID: %s EdgePinCost: %f ColPinSpace: %f\n"%(cellName, extpin.pinName, extpin.netID, Pin_cost, Pin_space))    
-
-  Avg_PinMpoCnt = float(Avg_PinMpoCnt)/float(Num_Pins);
+    #print ("Cell: %s Pin: %s Net ID: %s EdgePinCost: %f ColPinSpace: %f\n"%(cellName, extpin.pinName, extpin.netID, Pin_cost, Pin_space))   
+   
+  Avg_PinMpoCnt = float(Avg_PinMpoCnt)/float(Num_Pins)
   #if Num_PinSpace != 0:
   #   Avg_PinSpace = float(Avg_PinSpace)/float(Num_PinSpace);
   #   Avg_PinCost = float(Avg_PinCost)/float(Num_PinSpace);
@@ -686,9 +685,10 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
   
   print("CellName: ", cellName, "cellWidth: ", cellWidth)
 
+  lefLayerStr = ""
   # TODO print Metal layer info
   for metalInfo in metals:
-    print(metalInfo.getLefLayerStr(techInfo))
+    lefLayerStr += metalInfo.getLefLayerStr(techInfo)
 
   lefStr = ""
   lefStr += "MACRO %s\n" % (cellName)
@@ -707,7 +707,7 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
   lefStr += obsInfo.getLefStr(techInfo)
   lefStr += "END %s\n\n" % (cellName)  
 
-  return lefStr
+  return lefLayerStr + lefStr
 
 def GetMpoFlag(inpStr):
   if inpStr == "2":

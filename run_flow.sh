@@ -6,7 +6,7 @@ export workdir="$workdir/CFET/PNR_4.5T_Extend"
 # Step 1
 echo "********** Generating Testcase **********"
 echo "genTestCase_cfet.pl [.cdl file] [$offset]"
-$workdir/scripts/genTestCase_cfet_v2.b.pl ./Library/ASAP7_PDKandLIB_v1p5/asap7libs_24/cdl/lvs/asap7_75t_R.cdl 3
+$workdir/scripts/genTestCase_cfet_v2.1.pl ./Library/ASAP7_PDKandLIB_v1p5/asap7libs_24/cdl/lvs/asap7_75t_R.cdl 3
 cp -a ./pinLayouts_cfet_v2.1/. $workdir/pinLayouts_cfet 
 
 # Step 2
@@ -36,4 +36,4 @@ cd -
 echo "********** Generating LEF file **********"
 echo "python generate.py [$metalPitch] [$cppWidth] [$siteName] [$mpoMode]"
 cd ./ConvtoLef
-python3 generate_cfet_v4.0.py 48 84 coreSite 2 "$workdir/solutionsSMT_cfet/" "./output"
+python generate_cfet_v4.0.py 48 84 coreSite 2 "$workdir/solutionsSMT_cfet/" "./output"
