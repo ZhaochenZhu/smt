@@ -1022,6 +1022,17 @@ print "a     # Boundary Vertices = $numBoundaries\n";
 # YW: Debugging
 print "**** boundaryVertices:\n";
 print Dumper(\@boundaryVertices);
+# $VAR1 = [
+#           'm3r1c0',
+#           'm3r1c2',
+#           'm3r1c4',
+#           'm3r1c6',
+#           'm3r2c0',
+#           'm3r2c2',
+#           'm3r2c4',
+#           'm3r2c6'
+#         ];
+
 
 # [2018-10-15] Store the net information for SON simplifying
 my @outerPins = ();

@@ -2003,44 +2003,48 @@ my @backCorners = ();
 my $numBackCorners = 0;
 my $cornerVertex = "";
 
-foreach my $vName (keys %vertices) {
-	# regex extract vertex information
-	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
-	# print "metal$metal, row$row, col$col\n";
-	if($metal==1 && $col % 2 == 1){
-		next;
-	}
-	elsif($metal % 2 == 1 && $col % 2 == 1){
-		next;
-	}
+for my $metal (1 .. $numMetalLayer) { 
+	my @temp_vertices = @{$map_metal_to_vertices{"$metal"}};
+	# $xxx, $yyy is not used, only for placeholder
+	my ($xxx, $minRow, $minCol) = ($temp_vertices[0] =~ m/m(\d+)r(\d+)c(\d+)/);
+	my ($yyy, $maxRow, $maxCol) = ($temp_vertices[-1] =~ m/m(\d+)r(\d+)c(\d+)/);
 
-	$cornerVertex = $vName;
-	my $offset = 0;
-	my $MP = 0;
-	# map number of metal tracks
-	my $tempNumTrackV = $map_numTrackV{$metal};
-	my $tempNumTrackH = $map_numTrackH{$metal};
+	print("$minRow, $minCol, $maxRow, $maxCol\n");
 
-	if ($col == $offset) {
-		push (@leftCorners, $cornerVertex);
-		$numLeftCorners++;
-	}
+	foreach (@temp_vertices) {
+		my $vName = $_;
+		# regex extract vertex information
+		my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+		# print "metal$metal, row$row, col$col\n";
+		if($metal==1 && $col % 2 == 1){
+			next;
+		}
+		elsif($metal % 2 == 1 && $col % 2 == 1){
+			next;
+		}
 
-	if ($col == $numTrackV-1) {
-		push (@rightCorners, $cornerVertex);
-		$numRightCorners++;
-	}
+		$cornerVertex = $vName;
 
-	if ($row == $offset) {
-		push (@frontCorners, $cornerVertex);
-		$numFrontCorners++;
-	}
+		if ($col == $minCol) {
+			push (@leftCorners, $cornerVertex);
+			$numLeftCorners++;
+		}
 
-	if ($row == $numTrackH-3) {
-		push (@backCorners, $cornerVertex);
-		$numBackCorners++;
+		if ($col == $maxCol) {
+			push (@rightCorners, $cornerVertex);
+			$numRightCorners++;
+		}
+
+		if ($row == $minRow) {
+			push (@frontCorners, $cornerVertex);
+			$numFrontCorners++;
+		}
+
+		if ($row == $maxRow) {
+			push (@backCorners, $cornerVertex);
+			$numBackCorners++;
+		}
 	}
-	
 }
 
 #print "@backCorners\n";
@@ -2048,6 +2052,16 @@ print "a     # Left Corners      = $numLeftCorners\n";
 print "a     # Right Corners     = $numRightCorners\n";
 print "a     # Front Corners     = $numFrontCorners\n";
 print "a     # Back Corners      = $numBackCorners\n";
+
+#YW Debug:
+print "**** leftCorners:\n";
+print Dumper(\@leftCorners);
+print "**** rightCorners:\n";
+print Dumper(\@rightCorners);
+print "**** frontCorners:\n";
+print Dumper(\@frontCorners);
+print "**** backCorners:\n";
+print Dumper(\@backCorners);
 
 
 
