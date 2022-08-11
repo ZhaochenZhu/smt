@@ -1054,25 +1054,31 @@ my $cornerVertex = "";
 for my $metal (1 .. $numMetalLayer) { # At the top-most metal layer, only vias exist.
 	for my $row (0 .. $numTrackH-3) {
 		for my $col (0 .. $numTrackV-1) {
+			# if metal is 1 (vertical), and odd col
 			if($metal==1 && $col % 2 == 1){
 				next;
 			}
+			# if metal is 3, 5, 7...(vertical), and odd col
 			elsif($metal % 2 == 1 && $col % 2 == 1){
 				next;
 			}
 			$cornerVertex = "m".$metal."r".$row."c".$col;
+			# first col = leftCorners
 			if ($col == 0) {
 				push (@leftCorners, $cornerVertex);
 				$numLeftCorners++;
 			}
+			# last col = rightCorners
 			if ($col == $numTrackV-1) {
 				push (@rightCorners, $cornerVertex);
 				$numRightCorners++;
 			}
+			# first row = frontCorners
 			if ($row == 0) {
 				push (@frontCorners, $cornerVertex);
 				$numFrontCorners++;
 			}
+			# last row = backCorners
 			if ($row == $numTrackH-3) {
 				push (@backCorners, $cornerVertex);
 				$numBackCorners++;
@@ -1080,6 +1086,7 @@ for my $metal (1 .. $numMetalLayer) { # At the top-most metal layer, only vias e
 		}
 	}
 }
+
 #print "@backCorners\n";
 print "a     # Left Corners      = $numLeftCorners\n";
 print "a     # Right Corners     = $numRightCorners\n";

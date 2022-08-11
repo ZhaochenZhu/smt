@@ -1019,5 +1019,471 @@ for my $metal ($numMetalLayer-1 .. $numMetalLayer) {
 $numBoundaries = scalar @boundaryVertices;
 print "a     # Boundary Vertices = $numBoundaries\n";
 
+# YW: Debugging
 print "**** boundaryVertices:\n";
 print Dumper(\@boundaryVertices);
+
+# [2018-10-15] Store the net information for SON simplifying
+my @outerPins = ();
+my @outerPin = ();
+my %h_outerPin = ();
+my $numOuterPins = 0;
+my $commodityInfo = -1;
+
+for my $pinID (0 .. $#pins) {
+	# $pinXpos by default its -1
+	if ($pins[$pinID][3] == -1) {
+		$commodityInfo = -1;
+		# Initializing
+		# Find Commodity Infomation
+		for my $netIndex (0 .. $#nets) {
+			if ($nets[$netIndex][0] eq $pins[$pinID][1]) {
+				for my $sinkIndexofNet (0 .. $nets[$netIndex][4]) {
+					if ( $nets[$netIndex][5][$sinkIndexofNet] eq $pins[$pinID][0]) {
+						$commodityInfo = $sinkIndexofNet; 
+					}
+				}
+			}
+		}
+		if ($commodityInfo == -1){
+			print "ERROR: Cannot Find the commodity Information!!\n\n";
+		}
+		@outerPin = ($pins[$pinID][0],$pins[$pinID][1],$commodityInfo);
+		push (@outerPins, [@outerPin]) ;
+		$h_outerPin{$pins[$pinID][0]} = 1;
+	}
+}
+$numOuterPins = scalar @outerPins;
+
+print "**** outerPin:\n";
+print Dumper(\@outerPin);
+
+print "**** outerPins:\n";
+print Dumper(\@outerPins);
+# $VAR1 = [
+        #   [
+        #     'pin8',
+        #     'net1',
+        #     0
+        #   ],
+        #   [
+        #     'pin9',
+        #     'net2',
+        #     0
+        #   ]
+        # ];
+
+print "**** h_outerPin:\n";
+print Dumper(\%h_outerPin);
+# $VAR1 = {
+#           'pin8' => 1,
+#           'pin9' => 1
+#         };
+
+print "**** pins:\n";
+print Dumper(\@pins);
+# $VAR1 = [
+# 			[
+# 			'pinMM1_1',
+# 			'net1',
+# 			't',
+# 			2,
+# 			1,
+# 			[
+# 				1,
+# 				2
+# 			],
+# 			'insMM1',
+# 			'G'
+# 			],
+# 			[
+# 			'pinMM1_2',
+# 			'net2',
+# 			't',
+# 			2,
+# 			2,
+# 			[
+# 				1,
+# 				2
+# 			],
+# 			'insMM1',
+# 			'D'
+# 			],
+# 			[
+# 			'pinMM0_1',
+# 			'net1',
+# 			's',
+# 			2,
+# 			1,
+# 			[
+# 				1,
+# 				2
+# 			],
+# 			'insMM0',
+# 			'G'
+# 			],
+# 			[
+# 			'pinMM0_2',
+# 			'net2',
+# 			's',
+# 			2,
+# 			2,
+# 			[
+# 				1,
+# 				2
+# 			],
+# 			'insMM0',
+# 			'D'
+# 			],
+# 			[
+# 			'pin8',
+# 			'net1',
+# 			't',
+# 			-1,
+# 			-1,
+# 			[
+# 				1,
+# 				2
+# 			],
+# 			'ext',
+# 			'A'
+# 			],
+# 			[
+# 			'pin9',
+# 			'net2',
+# 			't',
+# 			-1,
+# 			-1,
+# 			[
+# 				1,
+# 				2
+# 			],
+# 			'ext',
+# 			'Y'
+# 			]
+# 		];
+
+
+print "**** nets:\n";
+print Dumper(\@nets);
+	#$VAR1 = [
+			#   [
+			#     'net1',
+			#     '1',
+			#     3,
+			#     'pinMM0_1',
+			#     2,
+			#     [
+			#       'pin8',
+			#       'pinMM1_1'
+			#     ],
+			#     [
+			#       'pin8',
+			#       'pinMM1_1',
+			#       'pinMM0_1'
+			#     ]
+			#   ],
+			#   [
+			#     'net2',
+			#     '2',
+			#     3,
+			#     'pinMM0_2',
+			#     2,
+			#     [
+			#       'pin9',
+			#       'pinMM1_2'
+			#     ],
+			#     [
+			#       'pin9',
+			#       'pinMM1_2',
+			#       'pinMM0_2'
+			#     ]
+			#   ]
+			# ];
+
+### (LEFT | RIGHT | FRONT | BACK) CORNER VERTICES Generation
+my @leftCorners = ();
+my $numLeftCorners = 0;
+my @rightCorners = ();
+my $numRightCorners = 0;
+my @frontCorners = ();
+my $numFrontCorners = 0;
+my @backCorners = ();
+my $numBackCorners = 0;
+my $cornerVertex = "";
+
+for my $metal (1 .. $numMetalLayer) { # At the top-most metal layer, only vias exist.
+	for my $row (0 .. $numTrackH-3) {
+		for my $col (0 .. $numTrackV-1) {
+			if($metal==1 && $col % 2 == 1){
+				next;
+			}
+			elsif($metal % 2 == 1 && $col % 2 == 1){
+				next;
+			}
+			$cornerVertex = "m".$metal."r".$row."c".$col;
+			if ($col == 0) {
+				push (@leftCorners, $cornerVertex);
+				$numLeftCorners++;
+			}
+			if ($col == $numTrackV-1) {
+				push (@rightCorners, $cornerVertex);
+				$numRightCorners++;
+			}
+			if ($row == 0) {
+				push (@frontCorners, $cornerVertex);
+				$numFrontCorners++;
+			}
+			if ($row == $numTrackH-3) {
+				push (@backCorners, $cornerVertex);
+				$numBackCorners++;
+			}
+		}
+	}
+}
+
+#print "@backCorners\n";
+print "a     # Left Corners      = $numLeftCorners\n";
+print "a     # Right Corners     = $numRightCorners\n";
+print "a     # Front Corners     = $numFrontCorners\n";
+print "a     # Back Corners      = $numBackCorners\n";
+
+print "**** leftCorners:\n";
+print Dumper(\@leftCorners);
+# $VAR1 = [
+#           'm1r0c0',
+#           'm1r1c0',
+#           'm1r2c0',
+#           'm1r3c0',
+#           'm2r0c0',
+#           'm2r1c0',
+#           'm2r2c0',
+#           'm2r3c0',
+#           'm3r0c0',
+#           'm3r1c0',
+#           'm3r2c0',
+#           'm3r3c0',
+#           'm4r0c0',
+#           'm4r1c0',
+#           'm4r2c0',
+#           'm4r3c0'
+#         ];
+
+
+print "**** rightCorners:\n";
+print Dumper(\@rightCorners);
+# $VAR1 = [
+#           'm1r0c6',
+#           'm1r1c6',
+#           'm1r2c6',
+#           'm1r3c6',
+#           'm2r0c6',
+#           'm2r1c6',
+#           'm2r2c6',
+#           'm2r3c6',
+#           'm3r0c6',
+#           'm3r1c6',
+#           'm3r2c6',
+#           'm3r3c6',
+#           'm4r0c6',
+#           'm4r1c6',
+#           'm4r2c6',
+#           'm4r3c6'
+#         ];
+
+
+print "**** frontCorners:\n";
+print Dumper(\@frontCorners);
+# $VAR1 = [
+#           'm1r0c0',
+#           'm1r0c2',
+#           'm1r0c4',
+#           'm1r0c6',
+#           'm2r0c0',
+#           'm2r0c1',
+#           'm2r0c2',
+#           'm2r0c3',
+#           'm2r0c4',
+#           'm2r0c5',
+#           'm2r0c6',
+#           'm3r0c0',
+#           'm3r0c2',
+#           'm3r0c4',
+#           'm3r0c6',
+#           'm4r0c0',
+#           'm4r0c1',
+#           'm4r0c2',
+#           'm4r0c3',
+#           'm4r0c4',
+#           'm4r0c5',
+#           'm4r0c6'
+#         ];
+
+
+print "**** backCorners:\n";
+print Dumper(\@backCorners);
+# $VAR1 = [
+#           'm1r3c0',
+#           'm1r3c2',
+#           'm1r3c4',
+#           'm1r3c6',
+#           'm2r3c0',
+#           'm2r3c1',
+#           'm2r3c2',
+#           'm2r3c3',
+#           'm2r3c4',
+#           'm2r3c5',
+#           'm2r3c6',
+#           'm3r3c0',
+#           'm3r3c2',
+#           'm3r3c4',
+#           'm3r3c6',
+#           'm4r3c0',
+#           'm4r3c1',
+#           'm4r3c2',
+#           'm4r3c3',
+#           'm4r3c4',
+#           'm4r3c5',
+#           'm4r3c6'
+#         ];
+
+### SOURCE and SINK Generation.  All sources and sinks are supernodes.
+### DATA STRUCTURE:  SOURCE or SINK [netName] [#subNodes] [Arr. of sub-nodes, i.e., vertices]
+my %sources = ();
+my %sinks = ();
+my @source = ();
+my @sink = ();
+my @subNodes = ();
+my $numSubNodes = 0;
+my $numSources = 0;
+my $numSinks = 0;
+
+my $outerPinFlagSource = 0;
+my $outerPinFlagSink = 0;
+my $keyValue = "";
+
+# Super Outer Node Keyword
+my $keySON = "pinSON";
+
+for my $pinID (0 .. $#pins) {
+	@subNodes = ();
+	if ($pins[$pinID][2] eq "s") { # source
+		if ($pins[$pinID][3] == -1) {
+			if ($SON == 1){
+				if ($outerPinFlagSource == 0){
+					print "a        [SON Mode] Super Outer Node Simplifying - Source Case (Not Yet!)\n";
+					@subNodes = @boundaryVertices;
+					$outerPinFlagSource = 1;
+					$keyValue = $keySON;
+				}
+				else{
+					next;
+				}
+			}
+			else{   # SON Disable
+				@subNodes = @boundaryVertices;
+				$keyValue = $pins[$pinID][0];
+			}
+		} else {
+			for my $node (0 .. $pins[$pinID][3]-1) {
+				push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
+			}
+			$keyValue = $pins[$pinID][0];
+		}
+		$numSubNodes = scalar @subNodes;
+		@source = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
+		# Outer Pin should be at last in the input File Format [2018-10-15]
+		$sources{$keyValue} = [@source];
+	}
+	elsif ($pins[$pinID][2] eq "t") { # sink
+		if ($pins[$pinID][3] == -1) {
+			if ( $SON == 1) {        
+				if ($outerPinFlagSink == 0){
+					print "a        [SON Mode] Super Outer Node Simplifying - Sink\n";
+					@subNodes = @boundaryVertices;
+					$outerPinFlagSink = 1;
+					$keyValue = $keySON;
+				}
+				else{
+					next;
+				}
+			}
+			else{ 
+				@subNodes = @boundaryVertices;
+				$keyValue = $pins[$pinID][0];
+			}
+		} else {
+			for my $node (0 .. $pins[$pinID][3]-1) {
+				push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
+			}
+			$keyValue = $pins[$pinID][0];
+		}
+		$numSubNodes = scalar @subNodes;
+		@sink = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
+		$sinks{$keyValue} = [@sink];
+	}
+}
+my $numExtNets = keys %h_extnets;
+$numSources = keys %sources;
+$numSinks = keys %sinks;
+print "a     # Ext Nets          = $numExtNets\n";
+print "a     # Sources           = $numSources\n";
+print "a     # Sinks             = $numSinks\n";
+
+print "**** sources:\n";
+print Dumper(\%sources);
+# $VAR1 = {
+#           'pinMM0_1' => [
+#                           'net1',
+#                           2,
+#                           [
+#                             'm1r1c1',
+#                             'm1r2c1'
+#                           ]
+#                         ],
+#           'pinMM0_2' => [
+#                           'net2',
+#                           2,
+#                           [
+#                             'm1r1c2',
+#                             'm1r2c2'
+#                           ]
+#                         ]
+#         };
+
+
+print "**** sinks:\n";
+print Dumper(\%sinks);
+# $VAR1 = {
+#           'pinMM1_1' => [
+#                           'net1',
+#                           2,
+#                           [
+#                             'm1r1c1',
+#                             'm1r2c1'
+#                           ]
+#                         ],
+#           'pinMM1_2' => [
+#                           'net2',
+#                           2,
+#                           [
+#                             'm1r1c2',
+#                             'm1r2c2'
+#                           ]
+#                         ],
+#           'pinSON' => [
+#                         'net1',
+#                         8,
+#                         [
+#                           'm3r1c0',
+#                           'm3r1c2',
+#                           'm3r1c4',
+#                           'm3r1c6',
+#                           'm3r2c0',
+#                           'm3r2c2',
+#                           'm3r2c4',
+#                           'm3r2c6'
+#                         ]
+#                       ]
+#         };
+

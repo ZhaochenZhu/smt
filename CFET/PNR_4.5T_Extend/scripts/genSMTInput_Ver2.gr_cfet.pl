@@ -1821,7 +1821,7 @@ foreach (@temp_vertices) {
 	my $vName = $_;
 	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
 
-	print("iterate m$metal, r$row, c$col\n");
+	# print("iterate m$metal, r$row, c$col\n");
 	# YW: disregard odd layer if statement
 	if($metal%2!=0) { # odd layer: vertical --> col
 		if($col%2 == 1){	# ignore odd col: bc metal pitch?
@@ -1887,7 +1887,7 @@ foreach (@temp_vertices) {
 	my $vName = $_;
 	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
 
-	print("iterate m$metal, r$row, c$col\n");
+	# print("iterate m$metal, r$row, c$col\n");
 	# YW: disregard odd layer if statement
 	if($metal%2!=0) { # odd layer: vertical --> col
 		if($col%2 == 1){	# ignore odd col: bc metal pitch?
@@ -1948,6 +1948,7 @@ print "**** boundaryVertices:\n";
 print Dumper(\@boundaryVertices);
 
 # [2018-10-15] Store the net information for SON simplifying
+# OuterPin: I/O pin
 my @outerPins = ();
 my @outerPin = ();
 my %h_outerPin = ();
@@ -1955,15 +1956,21 @@ my $numOuterPins = 0;
 my $commodityInfo = -1;
 
 for my $pinID (0 .. $#pins) {
+	# $pinXpos by default its -1
 	if ($pins[$pinID][3] == -1) {
-		$commodityInfo = -1;  # Initializing
+		$commodityInfo = -1;
+		# Initializing
 		# Find Commodity Infomation
 		for my $netIndex (0 .. $#nets) {
-			if ($nets[$netIndex][0] eq $pins[$pinID][1]){
-				for my $sinkIndexofNet (0 .. $nets[$netIndex][4]){
-					if ( $nets[$netIndex][5][$sinkIndexofNet] eq $pins[$pinID][0]){
-						$commodityInfo = $sinkIndexofNet; 
-					}    
+			# $netName == $pin_netID
+			if ($nets[$netIndex][0] eq $pins[$pinID][1]) {
+				# sink (0...numSinks)
+				for my $sinkIndexofNet (0 .. $nets[$netIndex][4]) {
+					# [@sinks_inNet] == $pinName
+					if ( $nets[$netIndex][5][$sinkIndexofNet] eq $pins[$pinID][0]) {
+						# commodity info = sinkIndexofNet in [@sinks_inNet]
+						$commodityInfo = $sinkIndexofNet;
+					}
 				}
 			}
 		}
@@ -1971,11 +1978,76 @@ for my $pinID (0 .. $#pins) {
 			print "ERROR: Cannot Find the commodity Information!!\n\n";
 		}
 		@outerPin = ($pins[$pinID][0],$pins[$pinID][1],$commodityInfo);
+		
 		push (@outerPins, [@outerPin]) ;
 		$h_outerPin{$pins[$pinID][0]} = 1;
 	}
 }
+
 $numOuterPins = scalar @outerPins;
+
+print "**** outerPin:\n";
+print Dumper(\@outerPin);
+
+print "**** outerPins:\n";
+print Dumper(\@outerPins);
+
+### (LEFT | RIGHT | FRONT | BACK) CORNER VERTICES Generation
+my @leftCorners = ();
+my $numLeftCorners = 0;
+my @rightCorners = ();
+my $numRightCorners = 0;
+my @frontCorners = ();
+my $numFrontCorners = 0;
+my @backCorners = ();
+my $numBackCorners = 0;
+my $cornerVertex = "";
+
+foreach my $vName (keys %vertices) {
+	# regex extract vertex information
+	my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+	# print "metal$metal, row$row, col$col\n";
+	if($metal==1 && $col % 2 == 1){
+		next;
+	}
+	elsif($metal % 2 == 1 && $col % 2 == 1){
+		next;
+	}
+
+	$cornerVertex = $vName;
+	my $offset = 0;
+	my $MP = 0;
+	# map number of metal tracks
+	my $tempNumTrackV = $map_numTrackV{$metal};
+	my $tempNumTrackH = $map_numTrackH{$metal};
+
+	if ($col == $offset) {
+		push (@leftCorners, $cornerVertex);
+		$numLeftCorners++;
+	}
+
+	if ($col == $numTrackV-1) {
+		push (@rightCorners, $cornerVertex);
+		$numRightCorners++;
+	}
+
+	if ($row == $offset) {
+		push (@frontCorners, $cornerVertex);
+		$numFrontCorners++;
+	}
+
+	if ($row == $numTrackH-3) {
+		push (@backCorners, $cornerVertex);
+		$numBackCorners++;
+	}
+	
+}
+
+#print "@backCorners\n";
+print "a     # Left Corners      = $numLeftCorners\n";
+print "a     # Right Corners     = $numRightCorners\n";
+print "a     # Front Corners     = $numFrontCorners\n";
+print "a     # Back Corners      = $numBackCorners\n";
 
 
 

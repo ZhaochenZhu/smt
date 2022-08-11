@@ -14,5 +14,5 @@ testcase_dir=pinLayouts_cfet_v2.1
 
 for entry in "$testcase_dir"/*; do
   echo "$entry"
-  $workdir/scripts/genSMTInput_Ver2.gr_cfet.pl $entry 0 1 0 1 1 1 1 2 3 4 1 2 1 0 0 1 1 1 2
+  $workdir/scripts/genSMTInput_Ver2.ref_cfet.pl $entry 0 1 0 1 1 1 1 2 3 4 1 2 1 0 0 1 1 1 2
 done
