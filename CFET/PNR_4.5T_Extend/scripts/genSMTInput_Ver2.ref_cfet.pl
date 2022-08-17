@@ -1498,3 +1498,203 @@ print Dumper(\%sinks);
 #                       ]
 #         };
 
+# super outer node
+if ( $SON == 1){
+############### Pin Information Modification #####################
+	print "**** before MOD pins:\n";
+	for my $pinIndex (0 .. $#pins) {
+		for my $outerPinIndex (0 .. $#outerPins){
+			# if pinname is outerpin name
+			if ($pins[$pinIndex][0] eq $outerPins[$outerPinIndex][0] ){
+				$pins[$pinIndex][0] = $keySON; # pinName = pinSON
+				$pins[$pinIndex][1] = "Multi"; # Net = Multi
+				next;
+			}
+		}
+	}
+############ SON Node should be last elements to use pop ###########
+	my $SONFlag = 0;
+	my $tmp_cnt = $#pins;
+	print "**** after MOD pins:\n";
+	print Dumper(\@pins);
+	# pop elements in reverse order
+	for(my $i=0; $i<=$tmp_cnt; $i++){
+		# pop from SONpins
+		if($pins[$tmp_cnt-$i][0] eq $keySON){
+			$SONFlag = 1;
+			@pin = pop @pins;
+		}
+	}
+
+	print "**** pop pins:\n";
+	print Dumper(\@pins);
+
+	#only push one pin
+	if ($SONFlag == 1){
+		push (@pins, @pin);
+	}
+
+	print "**** SON pins:\n";
+	print Dumper(\@pins);
+}
+############### Net Information Modification from Outer pin to "SON"
+if ( $SON == 1 ){
+	for my $netIndex (0 .. $#nets) {
+		for my $sinkIndex (0 .. $nets[$netIndex][4]-1){
+			for my $outerPinIndex (0 .. $#outerPins){
+				if ($nets[$netIndex][5][$sinkIndex] eq $outerPins[$outerPinIndex][0] ){
+					$nets[$netIndex][5][$sinkIndex] = $keySON;
+					next;
+				}
+			}
+		}
+		for my $pinIndex (0 .. $nets[$netIndex][2]-1){
+			for my $outerPinIndex (0 .. $#outerPins){
+				if ($nets[$netIndex][6][$pinIndex] eq $outerPins[$outerPinIndex][0] ){
+					$nets[$netIndex][6][$pinIndex] = $keySON;
+					next;
+				}
+			}
+		}
+	}
+}
+
+### VIRTUAL EDGE Generation
+### We only define directed virtual edges since we know the direction based on source/sink information.
+### All supernodes are having names starting with 'pin'.
+### DATA STRUCTURE:  VIRTUAL_EDGE [index] [Origin] [Destination] [Cost=0] [instIdx]
+my @virtualEdges = ();
+my @virtualEdge = ();
+my $vEdgeIndex = 0;
+my $vEdgeNumber = 0;
+my $virtualCost = 0;
+
+for my $pinID (0 .. $#pins) {
+	if ($pins[$pinID][2] eq "s") { # source
+		if(exists $sources{$pins[$pinID][0]}){
+			if(exists($h_inst_idx{$pins[$pinID][6]})){
+				my $instIdx = $h_inst_idx{$pins[$pinID][6]};
+				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
+
+				if($h_inst_idx{$pins[$pinID][6]} <= $lastIdxPMOS){
+					#my $ru = $h_RTrack{$numPTrackH-1-$h_numCon{$inst[$instIdx][2]/$tmp_finger[0]}};
+					#my $rl = $h_RTrack{$numPTrackH-1};
+					my $ru = $h_RTrack{0};
+					my $rl = $h_RTrack{$numPTrackH-1};	
+					#for my $row (0 .. $numTrackH/2-2){
+					for my $row (0 .. $numTrackH-3){
+						for my $col (0 .. $numTrackV-1){
+							if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
+								if($pins[$pinID][7] eq "G" && $col%2 == 1){
+									next;
+								}
+								elsif($pins[$pinID][7] ne "G" && $col%2 == 0){
+									next;
+								}
+								#@virtualEdge = ($vEdgeIndex, $pins[$pinID][0], "m1r".$row."c".$col, $virtualCost, $InstIdx);
+								@virtualEdge = ($vEdgeIndex, "m1r".$row."c".$col, $pins[$pinID][0], $virtualCost);
+								push (@virtualEdges, [@virtualEdge]);
+								$vEdgeIndex++;
+							}
+						}
+					}
+					
+				}
+				else
+				{
+					#my $ru = $h_RTrack{0};
+					#my $rl = $h_RTrack{$h_numCon{$inst[$instIdx][2]/$tmp_finger[0]}};
+					my $ru = $h_RTrack{0};
+					my $rl = $h_RTrack{$numPTrackH-1};
+					#for my $row ($numTrackH/2-1 .. $numTrackH-3){
+					for my $row (0 .. $numTrackH-3){
+						for my $col (0 .. $numTrackV-1){
+							if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
+								if($pins[$pinID][7] eq "G" && $col%2 == 1){
+									next;
+								}
+								elsif($pins[$pinID][7] ne "G" && $col%2 == 0){
+									next;
+								}
+#@virtualEdge = ($vEdgeIndex, $pins[$pinID][0], "m1r".$row."c".$col, $virtualCost, $InstIdx);
+								@virtualEdge = ($vEdgeIndex, "m1r".$row."c".$col, $pins[$pinID][0], $virtualCost);
+								push (@virtualEdges, [@virtualEdge]);
+								$vEdgeIndex++;
+							}
+						}
+					}
+				}
+			}
+			else{
+				print "[ERROR] Virtual Edge Generation : Instance Information not found!!\n";
+				exit(-1);
+			}
+		}
+	}
+	elsif ($pins[$pinID][2] eq "t") { # sink
+		if(exists $sinks{$pins[$pinID][0]}){
+			if($pins[$pinID][0] eq $keySON){
+			for my $term (0 ..  $sinks{$pins[$pinID][0]}[1]-1){
+					@virtualEdge = ($vEdgeIndex, $sinks{$pins[$pinID][0]}[2][$term], $pins[$pinID][0], $virtualCost);
+					push (@virtualEdges, [@virtualEdge]);
+					$vEdgeIndex++;
+				}
+			}
+			elsif(exists($h_inst_idx{$pins[$pinID][6]})){
+				my $instIdx = $h_inst_idx{$pins[$pinID][6]};
+				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
+
+				if($h_inst_idx{$pins[$pinID][6]} <= $lastIdxPMOS){
+					#my $ru = $h_RTrack{$numPTrackH-1-$h_numCon{$inst[$instIdx][2]/$tmp_finger[0]}};
+					#my $rl = $h_RTrack{$numPTrackH-1};
+					my $ru = $h_RTrack{0};
+					my $rl = $h_RTrack{$numPTrackH-1};
+
+					#for my $row (0 .. $numTrackH/2-2){
+					for my $row (0 .. $numTrackH-3){
+						for my $col (0 .. $numTrackV-1){
+							if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
+								if($pins[$pinID][7] eq "G" && $col%2 == 1){
+									next;
+								}
+								elsif($pins[$pinID][7] ne "G" && $col%2 == 0){
+									next;
+								}
+								@virtualEdge = ($vEdgeIndex, "m1r".$row."c".$col, $pins[$pinID][0], $virtualCost);
+								push (@virtualEdges, [@virtualEdge]);
+								$vEdgeIndex++;
+							}
+						}
+					}
+				}
+				else{
+					#my $ru = $h_RTrack{0};
+					#my $rl = $h_RTrack{$h_numCon{$inst[$instIdx][2]/$tmp_finger[0]}};
+					my $ru = $h_RTrack{0};
+					my $rl = $h_RTrack{$numPTrackH-1};
+
+					#for my $row ($numTrackH/2-1 .. $numTrackH-3){
+					for my $row (0 .. $numTrackH-3){
+						for my $col (0 .. $numTrackV-1){
+							if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
+								if($pins[$pinID][7] eq "G" && $col%2 == 1){
+									next;
+								}
+								elsif($pins[$pinID][7] ne "G" && $col%2 == 0){
+									next;
+								}
+								@virtualEdge = ($vEdgeIndex, "m1r".$row."c".$col, $pins[$pinID][0], $virtualCost);
+								push (@virtualEdges, [@virtualEdge]);
+								$vEdgeIndex++;
+							}
+						}
+					}
+				}
+			}
+			else{
+				print "[ERROR] Virtual Edge Generation : Instance Information not found!!\n";
+				exit(-1);
+			}
+		}
+	}
+}

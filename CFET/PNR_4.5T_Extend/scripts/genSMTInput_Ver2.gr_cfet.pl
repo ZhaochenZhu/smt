@@ -2063,5 +2063,50 @@ print Dumper(\@frontCorners);
 print "**** backCorners:\n";
 print Dumper(\@backCorners);
 
-
-
+# super outer node
+if ( $SON == 1){
+############### Pin Information Modification #####################
+	for my $pinIndex (0 .. $#pins) {
+		for my $outerPinIndex (0 .. $#outerPins){
+			# if pin
+			if ($pins[$pinIndex][0] eq $outerPins[$outerPinIndex][0] ){
+				$pins[$pinIndex][0] = $keySON;
+				$pins[$pinIndex][1] = "Multi";
+				next;
+			}   
+		}
+	}
+############ SON Node should be last elements to use pop ###########
+	my $SONFlag = 0;
+	my $tmp_cnt = $#pins;
+	for(my $i=0; $i<=$tmp_cnt; $i++){
+		if($pins[$tmp_cnt-$i][0] eq $keySON){
+			$SONFlag = 1;
+			@pin = pop @pins;
+		}
+	}
+	if ($SONFlag == 1){
+		push (@pins, @pin);
+	}
+}
+############### Net Information Modification from Outer pin to "SON"
+if ( $SON == 1 ){
+	for my $netIndex (0 .. $#nets) {
+		for my $sinkIndex (0 .. $nets[$netIndex][4]-1){
+			for my $outerPinIndex (0 .. $#outerPins){
+				if ($nets[$netIndex][5][$sinkIndex] eq $outerPins[$outerPinIndex][0] ){
+					$nets[$netIndex][5][$sinkIndex] = $keySON;
+					next;
+				}
+			}
+		}
+		for my $pinIndex (0 .. $nets[$netIndex][2]-1){
+			for my $outerPinIndex (0 .. $#outerPins){
+				if ($nets[$netIndex][6][$pinIndex] eq $outerPins[$outerPinIndex][0] ){
+					$nets[$netIndex][6][$pinIndex] = $keySON;
+					next;
+				}
+			}
+		}
+	}
+}
