@@ -90,6 +90,15 @@ for my $i(0 .. $#mapTrack){
 #	$h_mapTrack{$mapTrack[$i][1]} = 1;
 	$h_RTrack{$mapTrack[$i][0]} = $mapTrack[$i][1];
 }
+
+# ref to Mark's thesis: Fig 2.5
+print("h_RTrack\n");
+print(Dumper\%h_RTrack);
+# $VAR1 = {
+#           '1' => 0,
+#           '0' => 3
+#         };
+
 # Maximum routing track index
 for my $i(0 .. $mapTrack[0][1]){
 	$h_mapTrack{$i} = 1;
@@ -387,7 +396,7 @@ while (<$in>) {
 		}
 		elsif ($line =~ /Tracks per Placement Clip\s*= (\d+)/) {
 			#$numPTrackH = $1*2;
-			$numPTrackH = $1; # CFET
+			$numPTrackH = $1; # CFET is always 2
 			$trackEachPRow = $1;
 			print "a     # Horizontal Placement Tracks = $numPTrackH\n";
 		}
@@ -436,6 +445,31 @@ while (<$in>) {
 			$numInstance++;
 		}
 	}
+
+	print("inst:\n");
+	print(Dumper\@inst);
+	# $VAR1 = [
+    #       [
+    #         'insMM1',
+    #         'PMOS',
+    #         '2',
+    #         0
+    #       ],
+    #       [
+    #         'insMM0',
+    #         'NMOS',
+    #         '2',
+    #         0
+    #       ]
+    #     ];
+
+	print("h_inst_idx:\n");
+	print(Dumper\%h_inst_idx);
+	# $VAR1 = {
+    #       'insMM0' => 1,
+    #       'insMM1' => 0
+    #     };
+
 
 	### Infile Status: pin
 	if ($infileStatus eq "pin") {
@@ -501,6 +535,9 @@ while (<$in>) {
 			$h_pin_id{$pin_instID."_".$pin_type} = $2;
 		}
 	}
+
+	print("pins:\n");
+	print(Dumper\@pins);
 
 	### Infile Status: net
 	if ($infileStatus eq "net") {
@@ -1090,7 +1127,8 @@ print Dumper(\%h_outerPin);
 #           'pin8' => 1,
 #           'pin9' => 1
 #         };
-
+# $pinName, $pin_netID, $pinIO, $pinLength, $pinXpos, [@pinYpos], $pin_instID, $pin_type
+# [PIN_NAME][NET_ID][pinIO][PIN_LENGTH][pinXpos][@pinYpos][INST_ID][PIN_TYPE]
 print "**** pins:\n";
 print Dumper(\@pins);
 # $VAR1 = [
@@ -1407,7 +1445,7 @@ for my $pinID (0 .. $#pins) {
 		$sources{$keyValue} = [@source];
 	}
 	elsif ($pins[$pinID][2] eq "t") { # sink
-		if ($pins[$pinID][3] == -1) {
+		if ($pins[$pinID][3] == -1) { # if ext pin
 			if ( $SON == 1) {        
 				if ($outerPinFlagSink == 0){
 					print "a        [SON Mode] Super Outer Node Simplifying - Sink\n";
@@ -1423,7 +1461,7 @@ for my $pinID (0 .. $#pins) {
 				@subNodes = @boundaryVertices;
 				$keyValue = $pins[$pinID][0];
 			}
-		} else {
+		} else { # if ext pin
 			for my $node (0 .. $pins[$pinID][3]-1) {
 				push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
 			}
@@ -1533,9 +1571,6 @@ if ( $SON == 1){
 	if ($SONFlag == 1){
 		push (@pins, @pin);
 	}
-
-	print "**** SON pins:\n";
-	print Dumper(\@pins);
 }
 ############### Net Information Modification from Outer pin to "SON"
 if ( $SON == 1 ){
@@ -1558,6 +1593,8 @@ if ( $SON == 1 ){
 		}
 	}
 }
+print "**** SON pins:\n";
+print Dumper(\@pins);
 
 ### VIRTUAL EDGE Generation
 ### We only define directed virtual edges since we know the direction based on source/sink information.
@@ -1569,19 +1606,35 @@ my $vEdgeIndex = 0;
 my $vEdgeNumber = 0;
 my $virtualCost = 0;
 
+print("numTrackH: $numTrackH\n");
+print("numTrackV: $numTrackV\n");
+
 for my $pinID (0 .. $#pins) {
+	# if [pinIO] is "source"
 	if ($pins[$pinID][2] eq "s") { # source
+		# pins: [PIN_NAME][NET_ID][pinIO][PIN_LENGTH][pinXpos][@pinYpos][INST_ID][PIN_TYPE]
+		# if pin is a source pin
 		if(exists $sources{$pins[$pinID][0]}){
+			# if pin related instance ID existed in h_inst_idx
 			if(exists($h_inst_idx{$pins[$pinID][6]})){
+				# retrieve instance index
 				my $instIdx = $h_inst_idx{$pins[$pinID][6]};
+				# inst: $instName, $instType, $instWidth, $instY
+				# get number of fingers based on [$instwidth] and track each placement row
 				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
 
+				# if instance is a PMOS
 				if($h_inst_idx{$pins[$pinID][6]} <= $lastIdxPMOS){
 					#my $ru = $h_RTrack{$numPTrackH-1-$h_numCon{$inst[$instIdx][2]/$tmp_finger[0]}};
 					#my $rl = $h_RTrack{$numPTrackH-1};
-					my $ru = $h_RTrack{0};
-					my $rl = $h_RTrack{$numPTrackH-1};	
+					# $numPTrackH in CFET is always 2
+					# Routing Tracks index
+					my $ru = $h_RTrack{0};				# upper
+					my $rl = $h_RTrack{$numPTrackH-1};	# lower
 					#for my $row (0 .. $numTrackH/2-2){
+
+					# subject to M1 Only
+					
 					for my $row (0 .. $numTrackH-3){
 						for my $col (0 .. $numTrackV-1){
 							if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
@@ -1601,6 +1654,7 @@ for my $pinID (0 .. $#pins) {
 					
 				}
 				else
+				# if instance is an NMOS
 				{
 					#my $ru = $h_RTrack{0};
 					#my $rl = $h_RTrack{$h_numCon{$inst[$instIdx][2]/$tmp_finger[0]}};
@@ -1698,3 +1752,13 @@ for my $pinID (0 .. $#pins) {
 		}
 	}
 }
+
+print("Virtual Edge:\n");
+print(Dumper\@virtualEdges);
+# $VAR1 = [
+#           63,
+#           'm3r2c6',
+#           'pinSON',
+#           0
+#         ];
+

@@ -464,6 +464,12 @@ while (<$in>) {
 		}
 	}
 
+	print("inst:\n");
+	print(Dumper\@inst);
+
+	print("h_inst_idx:\n");
+	print(Dumper\%h_inst_idx);
+
 	### Infile Status: pin
 	if ($infileStatus eq "pin") {
 		if ($line =~ /^i   pin(\d+)\s*net(\d+)\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)\s*(\S+)/) {
@@ -528,6 +534,8 @@ while (<$in>) {
 			$h_pin_id{$pin_instID."_".$pin_type} = $2;
 		}
 	}
+	print("pins:\n");
+	print(Dumper\@pins);
 
 	### Infile Status: net
 	if ($infileStatus eq "net") {
@@ -2063,6 +2071,143 @@ print Dumper(\@frontCorners);
 print "**** backCorners:\n";
 print Dumper(\@backCorners);
 
+### SOURCE and SINK Generation.  All sources and sinks are supernodes.
+### DATA STRUCTURE:  SOURCE or SINK [netName] [#subNodes] [Arr. of sub-nodes, i.e., vertices]
+my %sources = ();
+my %sinks = ();
+my @source = ();
+my @sink = ();
+my @subNodes = ();
+my $numSubNodes = 0;
+my $numSources = 0;
+my $numSinks = 0;
+
+my $outerPinFlagSource = 0;
+my $outerPinFlagSink = 0;
+my $keyValue = "";
+
+# Super Outer Node Keyword
+my $keySON = "pinSON";
+
+for my $pinID (0 .. $#pins) {
+	@subNodes = ();
+	if ($pins[$pinID][2] eq "s") { # source
+		if ($pins[$pinID][3] == -1) {
+			if ($SON == 1){
+				if ($outerPinFlagSource == 0){
+					print "a        [SON Mode] Super Outer Node Simplifying - Source Case (Not Yet!)\n";
+					@subNodes = @boundaryVertices;
+					$outerPinFlagSource = 1;
+					$keyValue = $keySON;
+				}
+				else{
+					next;
+				}
+			}
+			else{   # SON Disable
+				@subNodes = @boundaryVertices;
+				$keyValue = $pins[$pinID][0];
+			}
+		} else {
+			# pin length is always 2 or 4
+			# pins: [PIN_NAME][NET_ID][pinIO][PIN_LENGTH][pinXpos][@pinYpos][INST_ID][PIN_TYPE]
+			# by pin length, at M1, every pin is instantiated on a node, 
+			for my $node (0 .. $pins[$pinID][3]-1) {
+				push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
+			}
+			$keyValue = $pins[$pinID][0];
+		}
+		$numSubNodes = scalar @subNodes;
+		@source = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
+		# Outer Pin should be at last in the input File Format [2018-10-15]
+		$sources{$keyValue} = [@source];
+	}
+	elsif ($pins[$pinID][2] eq "t") { # sink
+		if ($pins[$pinID][3] == -1) {
+			if ( $SON == 1) {        
+				if ($outerPinFlagSink == 0){
+					print "a        [SON Mode] Super Outer Node Simplifying - Sink\n";
+					@subNodes = @boundaryVertices;
+					$outerPinFlagSink = 1;
+					$keyValue = $keySON;
+				}
+				else{
+					next;
+				}
+			}
+			else{ 
+				@subNodes = @boundaryVertices;
+				$keyValue = $pins[$pinID][0];
+			}
+		} else {
+			for my $node (0 .. $pins[$pinID][3]-1) {
+				push (@subNodes, "m1r".$pins[$pinID][5][$node]."c".$pins[$pinID][4]);
+			}
+			$keyValue = $pins[$pinID][0];
+		}
+		$numSubNodes = scalar @subNodes;
+		@sink = ($pins[$pinID][1], $numSubNodes, [@subNodes]);
+		$sinks{$keyValue} = [@sink];
+	}
+}
+my $numExtNets = keys %h_extnets;
+$numSources = keys %sources;
+$numSinks = keys %sinks;
+print "a     # Ext Nets          = $numExtNets\n";
+print "a     # Sources           = $numSources\n";
+print "a     # Sinks             = $numSinks\n";
+
+print "**** sources:\n";
+print Dumper(\%sources);
+# $VAR1 = {
+#           'pinMM0_1' => [
+#                           'net1',
+#                           2,
+#                           [
+#                             'm1r1c1',
+#                             'm1r2c1'
+#                           ]
+#                         ],
+#           'pinMM0_2' => [
+#                           'net2',
+#                           2,
+#                           [
+#                             'm1r1c2',
+#                             'm1r2c2'
+#                           ]
+#                         ]
+#         };
+
+print "**** sinks:\n";
+print Dumper(\%sinks);
+# $VAR1 = {
+#           'pinSON' => [
+#                         'net1',
+#                         2,
+#                         [
+#                           'm4r4c1',
+#                           'm4r4c3'
+#                         ]
+#                       ],
+#           'pinMM1_2' => [
+#                           'net2',
+#                           2,
+#                           [
+#                             'm1r1c2',
+#                             'm1r2c2'
+#                           ]
+#                         ],
+#           'pinMM1_1' => [
+#                           'net1',
+#                           2,
+#                           [
+#                             'm1r1c1',
+#                             'm1r2c1'
+#                           ]
+#                         ]
+#         };
+
+
 # super outer node
 if ( $SON == 1){
 ############### Pin Information Modification #####################
@@ -2110,3 +2255,114 @@ if ( $SON == 1 ){
 		}
 	}
 }
+print "**** SON pins:\n";
+print Dumper(\@pins);
+
+### VIRTUAL EDGE Generation
+### We only define directed virtual edges since we know the direction based on source/sink information.
+### All supernodes are having names starting with 'pin'.
+### DATA STRUCTURE:  VIRTUAL_EDGE [index] [Origin] [Destination] [Cost=0] [instIdx]
+my @virtualEdges = ();
+my @virtualEdge = ();
+my $vEdgeIndex = 0;
+my $vEdgeNumber = 0;
+my $virtualCost = 0;
+
+for my $pinID (0 .. $#pins) {
+	# if [pinIO] is "source"
+	if ($pins[$pinID][2] eq "s") { # source
+		# pins: [PIN_NAME][NET_ID][pinIO][PIN_LENGTH][pinXpos][@pinYpos][INST_ID][PIN_TYPE]
+		# if pin is a source pin
+		if(exists $sources{$pins[$pinID][0]}){
+			# if pin related instance ID existed in h_inst_idx
+			if(exists($h_inst_idx{$pins[$pinID][6]})){
+				# retrieve instance index
+				my $instIdx = $h_inst_idx{$pins[$pinID][6]};
+				# inst: $instName, $instType, $instWidth, $instY
+				# get number of fingers based on [$instwidth] and track each placement row
+				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
+
+				#my $ru = $h_RTrack{$numPTrackH-1-$h_numCon{$inst[$instIdx][2]/$tmp_finger[0]}};
+				#my $rl = $h_RTrack{$numPTrackH-1};
+				# $numPTrackH in CFET is always 2
+				# Routing Tracks index
+				my $ru = $h_RTrack{0};				# upper
+				my $rl = $h_RTrack{$numPTrackH-1};	# lower
+				#for my $row (0 .. $numTrackH/2-2){
+
+				# subject to M1 Only
+				my @temp_vertices = @{$map_metal_to_vertices{"1"}};
+				foreach (@temp_vertices) {
+					my $vName = $_;
+					# regex extract vertex information
+					my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+						if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
+							if($pins[$pinID][7] eq "G" && $col%2 == 1){
+								next;
+							}
+							elsif($pins[$pinID][7] ne "G" && $col%2 == 0){
+								next;
+							}
+							#@virtualEdge = ($vEdgeIndex, $pins[$pinID][0], "m1r".$row."c".$col, $virtualCost, $InstIdx);
+							@virtualEdge = ($vEdgeIndex, "m1r".$row."c".$col, $pins[$pinID][0], $virtualCost);
+							push (@virtualEdges, [@virtualEdge]);
+							$vEdgeIndex++;
+						}
+				}
+			}
+			else{
+				print "[ERROR] Virtual Edge Generation : Instance Information not found!!\n";
+				exit(-1);
+			}
+		}
+	}
+	elsif ($pins[$pinID][2] eq "t") { # sink
+		if(exists $sinks{$pins[$pinID][0]}){
+			if($pins[$pinID][0] eq $keySON){
+			for my $term (0 ..  $sinks{$pins[$pinID][0]}[1]-1){
+					@virtualEdge = ($vEdgeIndex, $sinks{$pins[$pinID][0]}[2][$term], $pins[$pinID][0], $virtualCost);
+					push (@virtualEdges, [@virtualEdge]);
+					$vEdgeIndex++;
+				}
+			}
+			elsif(exists($h_inst_idx{$pins[$pinID][6]})){
+				my $instIdx = $h_inst_idx{$pins[$pinID][6]};
+				my @tmp_finger = getAvailableNumFinger($inst[$instIdx][2], $trackEachPRow);
+
+				my $ru = $h_RTrack{0};
+				my $rl = $h_RTrack{$numPTrackH-1};
+
+				my @temp_vertices = @{$map_metal_to_vertices{"1"}};
+				foreach (@temp_vertices) {
+					my $vName = $_;
+					# regex extract vertex information
+					my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+						if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
+							if($pins[$pinID][7] eq "G" && $col%2 == 1){
+								next;
+							}
+							elsif($pins[$pinID][7] ne "G" && $col%2 == 0){
+								next;
+							}
+							@virtualEdge = ($vEdgeIndex, "m1r".$row."c".$col, $pins[$pinID][0], $virtualCost);
+							push (@virtualEdges, [@virtualEdge]);
+							$vEdgeIndex++;
+						}
+				}
+			}
+			else{
+				print "[ERROR] Virtual Edge Generation : Instance Information not found!!\n";
+				exit(-1);
+			}
+		}
+	}
+}
+
+print("Virtual Edge:\n");
+print(Dumper\@virtualEdges);
+# $VAR1 = [
+#           57,
+#           'm4r4c3',
+#           'pinSON',
+#           0
+#         ];
