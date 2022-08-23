@@ -9,14 +9,16 @@ from itertools import cycle
 
 ###Example:######################################################################################################
 #                                                                                                               #
-#       python3 stdVisual.py ./CFET/PNR_4.5T_Extend/solutionsSMT_cfet/INVx2_ASAP7_75t_R_6T_0_C_5_29_27_0.conv   #
+#   python3 stdVisual.py ./CFET/PNR_4.5T_Extend/solutionsSMT_cfet/INVx2_ASAP7_75t_R_6T_0_C_5_29_27_0.conv 6 6   #
 #                                                                                                               #
-################################################################################################################# 
+#####################################################################################################################
 
 class StdVisual:
-    def __init__(self, convFile) -> None:
+    def __init__(self, convFile, metalPitch, cppWidth) -> None:
         # input file
         self.convFile = convFile
+        self.metalPitch = metalPitch
+        self.cppWidth = cppWidth
         # meta info
         self.inst_cnt = 0
         self.metal_cnt = 0
@@ -30,15 +32,22 @@ class StdVisual:
         self.extpins = []
 
         # Assume dimension
-        self.width = 100
-        self.height = 100
-        self.MP = 10
-        self.metalWidth = 4
-        self.x_offset = 2
-        self.y_offset = 2
+        self.metalWidth = int(self.metalPitch/2)
+        self.x_offset = 0
+        self.y_offset = 0
 
         # read conv file
+        self.numCPP = 0
+        self.numTrack = 0
         self.__readConv()
+
+        self.cellWidth = self.numCPP * self.cppWidth
+        self.realTrack = self.numTrack # BrpMode None
+        self.cellHeight = self.realTrack * self.metalPitch
+
+        self.scaling = 1
+        self.canvas_width = 10
+        self.canvas_height = 10
 
     def __readConv(self) -> None:
         with open(self.convFile) as fp:
@@ -56,8 +65,12 @@ class StdVisual:
                     # advance ptr
                     line = fp.readline()
                     continue
-
-                if line_item[0] == "INST":
+                
+                if line_item[0] == "COST":
+                    self.numCPP = int(int(line_item[1])/2)+1
+                elif line_item[0] == "TRACK":
+                    self.numTrack = int(line_item[2])
+                elif line_item[0] == "INST":
                     self.inst_cnt += 1
                     instance = self.Instance(   
                                                 idx=int(line_item[1]),
@@ -83,12 +96,13 @@ class StdVisual:
                     self.metals.append(metal)
                 
                 elif line_item[0] == "VIA":
+                    # NOTE: order is incorrect in original formulation
                     self.via_cnt += 1
                     via = self.Via( 
                                     fromMetal=int(line_item[1]), 
                                     toMetal=int(line_item[2]), 
-                                    x=int(line_item[3]), 
-                                    y=int(line_item[4]), 
+                                    y=int(line_item[3]), 
+                                    x=int(line_item[4]), 
                                     netID=int(line_item[5])
                                     )
 
@@ -115,8 +129,8 @@ class StdVisual:
         ax.set_aspect('equal', adjustable='box')
 
         # Construct grid
-        x, y = np.meshgrid(np.linspace(0, self.width, self.MP + 1),\
-             np.linspace(0, self.height, self.MP + 1))
+        x, y = np.meshgrid(np.linspace(0, self.metalPitch * self.canvas_width, num=self.canvas_width+1),\
+             np.linspace(0, self.metalPitch * self.canvas_height, num=self.canvas_height+1))
         
         ax.plot(x, y, c='b', alpha=0.1) # use plot, not scatter
         ax.plot(np.transpose(x), np.transpose(y), c='b', alpha=0.2) # add this here
@@ -126,7 +140,12 @@ class StdVisual:
 
         # metal layer color map
         layer_colors = {}
-        handles = []
+
+        # construct cell canvas
+        ax.add_patch(Rectangle((self.x_offset, self.y_offset),
+                                self.cellWidth * self.scaling,
+                                self.cellHeight * self.scaling,
+                                alpha=0.1, zorder=1000, facecolor=None, edgecolor='darkblue', label="STD CELL"))
         
         # construct metal block
         for metal_idx, metal in enumerate(self.metals):
@@ -142,36 +161,36 @@ class StdVisual:
             
             if metal.layer % 2 == 0:
                 # even => horizontal
-               ax.add_patch(Rectangle((self.x_offset * 10 + metal.fromCol * 10 - math.floor(self.metalWidth / 2),
-                                        self.y_offset * 10 + metal.fromRow * 10 - math.floor(self.metalWidth / 2)),
-                                        10 * (metal.toCol - metal.fromCol) + self.metalWidth, 
+               ax.add_patch(Rectangle((self.x_offset * self.scaling + metal.fromCol * self.metalPitch * self.scaling - (self.metalWidth / 2),
+                                        self.y_offset * self.scaling + metal.fromRow * self.metalPitch * self.scaling - (self.metalWidth / 2)),
+                                        self.scaling * (metal.toCol - metal.fromCol) * self.metalPitch  + self.metalWidth, 
                                         self.metalWidth,
                                         alpha=0.2, zorder=1000, facecolor=layer_color, edgecolor='darkblue', label="M"+str(metal.layer) if not seen else ""))
             else:
                 # odd => vertical
-                ax.add_patch(Rectangle((self.x_offset * 10 + metal.fromCol * 10 - math.floor(self.metalWidth / 2), 
-                                        self.y_offset * 10 + metal.fromRow * 10 - math.floor(self.metalWidth / 2)),
+                ax.add_patch(Rectangle((self.x_offset * self.scaling + metal.fromCol * self.metalPitch * self.scaling - (self.metalWidth / 2), 
+                                        self.y_offset * self.scaling + metal.fromRow * self.metalPitch * self.scaling - (self.metalWidth / 2)),
                                         self.metalWidth,
-                                        10 * (metal.toRow - metal.fromRow) + self.metalWidth,
+                                        self.scaling * (metal.toRow - metal.fromRow) * self.metalPitch  + self.metalWidth,
                                         alpha=0.2, zorder=1000, facecolor=layer_color, edgecolor='darkblue', label="M"+str(metal.layer) if not seen else ""))
         # construct via block
         for via_idx, via in enumerate(self.vias):
-            ax.add_patch(Rectangle((self.x_offset * 10 + via.x * 10 - math.floor(self.metalWidth / 2),
-                                    self.y_offset * 10 + via.y * 10 - math.floor(self.metalWidth / 2)),
+            ax.add_patch(Rectangle((self.x_offset * self.scaling + via.x * self.metalPitch * self.scaling - (self.metalWidth / 2),
+                                    self.y_offset * self.scaling + via.y * self.metalPitch * self.scaling - (self.metalWidth / 2)),
                                     self.metalWidth, 
                                     self.metalWidth,
                                     linewidth=3, alpha=0.5, zorder=1000, facecolor="none", edgecolor='red'))
         
         # construct via block
         for extpin_idx, extpin in enumerate(self.extpins):
-            ax.add_patch(Rectangle((self.x_offset * 10 + extpin.x * 10 - math.floor(self.metalWidth / 2),
-                                    self.y_offset * 10 + extpin.y * 10 - math.floor(self.metalWidth / 2)),
+            ax.add_patch(Rectangle((self.x_offset * self.scaling + extpin.x * self.metalPitch * self.scaling - (self.metalWidth / 2),
+                                    self.y_offset * self.scaling + extpin.y * self.metalPitch * self.scaling - (self.metalWidth / 2)),
                                     self.metalWidth, 
                                     self.metalWidth,
                                     linewidth=3, alpha=0.5, zorder=1000, facecolor="none", edgecolor='blue'))
 
 
-        ax.legend(loc=2, prop={'size': 20})
+        ax.legend(loc=2, prop={'size': 10})
         plt.show()
         plt.close('all')
 
@@ -221,14 +240,16 @@ class StdVisual:
 def main():
     args = sys.argv[1:]
 
-    if len(args) != 1:
+    if len(args) != 3:
         print("args no match!")
         exit(0)
     
     CONV_FILE = args[0]
+    metalPitch = int(args[1])
+    cppWidth = int(args[2])
     print("********************* Reading .conv File ", CONV_FILE)
-    std_vis = StdVisual(CONV_FILE)
-
+    std_vis = StdVisual(CONV_FILE, metalPitch, cppWidth)
+    print(std_vis.via_cnt)
     std_vis.display_std()
 
 if __name__ == '__main__':
