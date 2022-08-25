@@ -11,7 +11,7 @@ from itertools import cycle
 #                                                                                                               #
 #   python3 stdVisual.py ./CFET/PNR_4.5T_Extend/solutionsSMT_cfet/INVx2_ASAP7_75t_R_6T_0_C_5_29_27_0.conv 6 6   #
 #                                                                                                               #
-#####################################################################################################################
+#################################################################################################################
 
 class StdVisual:
     def __init__(self, convFile, metalPitch, cppWidth) -> None:
@@ -120,7 +120,7 @@ class StdVisual:
                                         )
                     self.extpins.append(extpin)
 
-    def display_std(self) -> None:
+    def display_std(self, metal_to_display="all") -> None:
         #define Matplotlib figure and axis
         fig, ax = plt.subplots(figsize=(8,8), dpi=50)
 
@@ -151,43 +151,45 @@ class StdVisual:
         for metal_idx, metal in enumerate(self.metals):
             if metal.layer in layer_colors:
                 layer_color = layer_colors[metal.layer]
-
                 seen = True
             else:
                 layer_color = next(cycol)
                 layer_colors[metal.layer] = layer_color
-
                 seen = False
             
             if metal.layer % 2 == 0:
                 # even => horizontal
-               ax.add_patch(Rectangle((self.x_offset * self.scaling + metal.fromCol * self.metalPitch * self.scaling - (self.metalWidth / 2),
-                                        self.y_offset * self.scaling + metal.fromRow * self.metalPitch * self.scaling - (self.metalWidth / 2)),
-                                        self.scaling * (metal.toCol - metal.fromCol) * self.metalPitch  + self.metalWidth, 
-                                        self.metalWidth,
-                                        alpha=0.2, zorder=1000, facecolor=layer_color, edgecolor='darkblue', label="M"+str(metal.layer) if not seen else ""))
+                if str(metal.layer) == metal_to_display or metal_to_display == "all":
+                    ax.add_patch(Rectangle((self.x_offset * self.scaling + metal.fromCol * self.metalPitch * self.scaling - (self.metalWidth / 2),
+                                            self.y_offset * self.scaling + metal.fromRow * self.metalPitch * self.scaling - (self.metalWidth / 2)),
+                                            self.scaling * (metal.toCol - metal.fromCol) * self.metalPitch  + self.metalWidth, 
+                                            self.metalWidth,
+                                            alpha=0.2, zorder=1000, facecolor=layer_color, edgecolor='darkblue', label="M"+str(metal.layer) if not seen else ""))
             else:
                 # odd => vertical
-                ax.add_patch(Rectangle((self.x_offset * self.scaling + metal.fromCol * self.metalPitch * self.scaling - (self.metalWidth / 2), 
-                                        self.y_offset * self.scaling + metal.fromRow * self.metalPitch * self.scaling - (self.metalWidth / 2)),
-                                        self.metalWidth,
-                                        self.scaling * (metal.toRow - metal.fromRow) * self.metalPitch  + self.metalWidth,
-                                        alpha=0.2, zorder=1000, facecolor=layer_color, edgecolor='darkblue', label="M"+str(metal.layer) if not seen else ""))
+                if str(metal.layer) == metal_to_display or metal_to_display == "all":
+                    ax.add_patch(Rectangle((self.x_offset * self.scaling + metal.fromCol * self.metalPitch * self.scaling - (self.metalWidth / 2), 
+                                            self.y_offset * self.scaling + metal.fromRow * self.metalPitch * self.scaling - (self.metalWidth / 2)),
+                                            self.metalWidth,
+                                            self.scaling * (metal.toRow - metal.fromRow) * self.metalPitch  + self.metalWidth,
+                                            alpha=0.2, zorder=1000, facecolor=layer_color, edgecolor='darkblue', label="M"+str(metal.layer) if not seen else ""))
         # construct via block
         for via_idx, via in enumerate(self.vias):
-            ax.add_patch(Rectangle((self.x_offset * self.scaling + via.x * self.metalPitch * self.scaling - (self.metalWidth / 2),
-                                    self.y_offset * self.scaling + via.y * self.metalPitch * self.scaling - (self.metalWidth / 2)),
-                                    self.metalWidth, 
-                                    self.metalWidth,
-                                    linewidth=3, alpha=0.5, zorder=1000, facecolor="none", edgecolor='red'))
+            if str(via.fromMetal) == metal_to_display or str(via.toMetal) == metal_to_display or metal_to_display == "all":
+                ax.add_patch(Rectangle((self.x_offset * self.scaling + via.x * self.metalPitch * self.scaling - (self.metalWidth / 2),
+                                        self.y_offset * self.scaling + via.y * self.metalPitch * self.scaling - (self.metalWidth / 2)),
+                                        self.metalWidth, 
+                                        self.metalWidth,
+                                        linewidth=3, alpha=0.5, zorder=1000, facecolor="none", edgecolor='red'))
         
         # construct via block
         for extpin_idx, extpin in enumerate(self.extpins):
-            ax.add_patch(Rectangle((self.x_offset * self.scaling + extpin.x * self.metalPitch * self.scaling - (self.metalWidth / 2),
-                                    self.y_offset * self.scaling + extpin.y * self.metalPitch * self.scaling - (self.metalWidth / 2)),
-                                    self.metalWidth, 
-                                    self.metalWidth,
-                                    linewidth=3, alpha=0.5, zorder=1000, facecolor="none", edgecolor='blue'))
+            if str(extpin.layer) == metal_to_display or metal_to_display == "all":
+                ax.add_patch(Rectangle((self.x_offset * self.scaling + extpin.x * self.metalPitch * self.scaling - (self.metalWidth / 2),
+                                        self.y_offset * self.scaling + extpin.y * self.metalPitch * self.scaling - (self.metalWidth / 2)),
+                                        self.metalWidth, 
+                                        self.metalWidth,
+                                        linewidth=3, alpha=0.5, zorder=1000, facecolor="none", edgecolor='blue'))
 
 
         ax.legend(loc=2, prop={'size': 10})
@@ -240,17 +242,21 @@ class StdVisual:
 def main():
     args = sys.argv[1:]
 
-    if len(args) != 3:
+    if len(args) < 3:
         print("args no match!")
         exit(0)
     
     CONV_FILE = args[0]
     metalPitch = int(args[1])
     cppWidth = int(args[2])
+    if len(args) > 3:
+        metal_to_display = str(args[3])
+    else:
+        metal_to_display = "all"
     print("********************* Reading .conv File ", CONV_FILE)
     std_vis = StdVisual(CONV_FILE, metalPitch, cppWidth)
     print(std_vis.via_cnt)
-    std_vis.display_std()
+    std_vis.display_std(metal_to_display=metal_to_display)
 
 if __name__ == '__main__':
     main()

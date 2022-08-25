@@ -928,15 +928,15 @@ for my $metal (1 .. $numMetalLayer) {     # Odd Layers: Vertical Direction   Eve
 				}
 
 				if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
-					if($col % 2 == 0){
-						# if col is even, construct edge to upper edge
-						$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
-						# [index] [v] [vU] 4 4
-						@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost, $vCost);
-						#print "@udEdge\n";
-						push (@udEdges, [@udEdge]);
-						$udEdgeIndex++;
-					}
+					# if($col % 2 == 0){
+					# if col is even, construct edge to upper edge
+					$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
+					# [index] [v] [vU] 4 4
+					@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost, $vCost);
+					#print "@udEdge\n";
+					push (@udEdges, [@udEdge]);
+					$udEdgeIndex++;
+					# }
 				}
 			}
 			else { # Odd Layers ==> Vertical; 1, 3, 5, ...
@@ -1264,9 +1264,11 @@ my $cornerVertex = "";
 for my $metal (1 .. $numMetalLayer) { # At the top-most metal layer, only vias exist.
 	for my $row (0 .. $numTrackH-3) {
 		for my $col (0 .. $numTrackV-1) {
-			if($metal==1 && $col % 2 == 1){
+			# skip metal 1 and odd col
+			if($metal == 1 && $col % 2 == 1){
 				next;
 			}
+			# skipping
 			elsif($metal % 2 == 1 && $col % 2 == 1){
 				next;
 			}
@@ -1634,7 +1636,6 @@ for my $pinID (0 .. $#pins) {
 					#for my $row (0 .. $numTrackH/2-2){
 
 					# subject to M1 Only
-					
 					for my $row (0 .. $numTrackH-3){
 						for my $col (0 .. $numTrackV-1){
 							if(exists($h_mapTrack{$row}) && $row<=$ru && $row>=$rl){
@@ -1762,3 +1763,235 @@ print(Dumper\@virtualEdges);
 #           0
 #         ];
 
+my %edge_in = ();
+my %edge_out = ();
+for my $edge (0 .. @udEdges-1){
+	push @{ $edge_out{$udEdges[$edge][1]} }, $edge;
+	push @{ $edge_in{$udEdges[$edge][2]} }, $edge;
+}
+my %vedge_in = ();
+my %vedge_out = ();
+for my $edge (0 .. @virtualEdges-1){
+	push @{ $vedge_out{$virtualEdges[$edge][1]} }, $edge;
+	push @{ $vedge_in{$virtualEdges[$edge][2]} }, $edge;
+}
+
+## Variable, Constraints Number Count
+my $c_v_placement = 0;
+my $c_v_placement_aux = 0;
+my $c_v_routing = 0;
+my $c_v_routing_aux = 0;
+my $c_v_connect = 0;
+my $c_v_connect_aux = 0;
+my $c_v_dr = 0;
+my $c_c_placement = 0;
+my $c_c_routing = 0;
+my $c_c_connect = 0;
+my $c_c_dr = 0;
+my $c_l_placement = 0;
+my $c_l_routing = 0;
+my $c_l_connect = 0;
+my $c_l_dr = 0;
+
+my $type = "";
+my $idx = 0;
+sub cnt{
+	$type = @_[0];
+	$idx = @_[1];
+
+	## Variable
+	if($type eq "v"){
+		if($idx == 0){
+			$c_v_placement++;
+		}
+		elsif($idx == 1){
+			$c_v_placement_aux++;
+		}
+		elsif($idx == 2){
+			$c_v_routing++;
+		}
+		elsif($idx == 3){
+			$c_v_routing_aux++;
+		}
+		elsif($idx == 4){
+			$c_v_connect++;
+		}
+		elsif($idx == 5){
+			$c_v_connect_aux++;
+		}
+		elsif($idx == 6){
+			$c_v_dr++;
+		}
+		else{
+			print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+			exit(-1);
+		}
+	}
+	## Constraints
+	elsif($type eq "c"){
+		if($idx == 0){
+			$c_c_placement++;
+		}
+		elsif($idx == 1){
+			$c_c_routing++;
+		}
+		elsif($idx == 2){
+			$c_c_connect++;
+		}
+		elsif($idx == 3){
+			$c_c_dr++;
+		}
+		else{
+			print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+			exit(-1);
+		}
+	}
+	## Literals
+	elsif($type eq "l"){
+		if($idx == 0){
+			$c_l_placement++;
+		}
+		elsif($idx == 1){
+			$c_l_routing++;
+		}
+		elsif($idx == 2){
+			$c_l_connect++;
+		}
+		elsif($idx == 3){
+			$c_l_dr++;
+		}
+		else{
+			print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+			exit(-1);
+		}
+	}
+	else{
+		print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+		exit(-1);
+	}
+	return;
+}
+
+$vEdgeNumber = scalar @virtualEdges;
+print "a     # Virtual Edges     = $vEdgeNumber\n";
+
+### END:  DATA STRUCTURE ##############################################################################################
+
+open (my $out, '>', $outfile);
+print "a   Generating SMT-LIB 2.0 Standard Input Code.\n";
+
+### INIT
+print $out ";Formulation for SMT\n";
+print $out ";	Format: SMT-LIB 2.0\n";
+print $out ";	Version: 1.0\n";
+print $out ";	Input File:  $workdir/$infile\n";
+
+print $out ";Layout Information\n";
+print $out ";	Placement\n";
+print $out ";	# Vertical Tracks   = $numPTrackV\n";
+print $out ";	# Horizontal Tracks = $numPTrackH\n";
+print $out ";	# Instances         = $numInstance\n";
+print $out ";	Routing\n";
+print $out ";	# Vertical Tracks   = $numTrackV\n";
+print $out ";	# Horizontal Tracks = $numTrackH\n";
+print $out ";	# Nets              = $totalNets\n";
+print $out ";	# Pins              = $totalPins\n";
+print $out ";	# Sources           = $numSources\n";
+print $out ";	List of Sources   = ";
+foreach my $key (keys %sources) {
+	print $out "$key ";
+}
+print $out "\n";
+print $out ";	# Sinks             = $numSinks\n";
+print $out ";	List of Sinks     = ";
+foreach my $key (keys %sinks) {
+	print $out "$key ";
+}
+print $out "\n";
+print $out ";	# Outer Pins        = $numOuterPins\n";
+print $out ";	List of Outer Pins= ";
+for my $i (0 .. $#outerPins) {              # All SON (Super Outer Node)
+	print $out "$outerPins[$i][0] ";        # 0 : Pin number , 1 : net number
+}
+print $out "\n";
+print $out ";	Outer Pins Information= ";
+for my $i (0 .. $#outerPins) {              # All SON (Super Outer Node)
+	print $out " $outerPins[$i][1]=$outerPins[$i][2] ";        # 0 : Net number , 1 : Commodity number
+}
+print $out "\n";
+print $out "; Parameters: SON=$SON DPR=$DoublePowerRail MAR=$MAR_Parameter EOL=$EOL_Parameter VR=$VR_Parameter PRL=$PRL_Parameter SHR=$SHR_Parameter MPL=$MPL_Parameter\n";
+print $out "; Parameters: MM=$MM_Parameter LOC=$Local_Parameter PART=$Partition_Parameter BCP=$BCP_Parameter NDE=$NDE_Parameter BS=$BS_Parameter PE=$PE_Parameter\n";
+print $out "; Parameters: M2Track=$M2_TRACK_Parameter M2Length=$M2_Length_Parameter Dint=$dint Stack=$stack_struct_flag, DVsamenet = $VR_double_samenet_flag, Stackvia = $VR_stacked_via_flag\n";
+print $out "\n\n";
+
+my $str = "";
+my %h_var = ();
+my $idx_var = 1;
+my $idx_clause = 1;
+my %h_assign = ();
+my %h_assign_new = ();
+my $isFirstLoop = 1;
+
+sub setVar{
+	my $varName = @_[0];
+	my $type = @_[1];
+
+	if(!exists($h_var{$varName})){
+		cnt("v", $type);
+		$h_var{$varName} = $idx_var;
+		$idx_var++;
+	}
+	return;
+}
+sub setVar_wo_cnt{
+	my $varName = @_[0];
+	my $type = @_[1];
+
+	if(!exists($h_var{$varName})){
+		$h_var{$varName} = -1;
+	}
+	return;
+}
+
+### Z3 Option Set ###
+print $out ";(set-option :produce-unsat-cores true)\n";
+print $out ";Begin SMT Formulation\n\n";
+
+print $out "(declare-const COST_SIZE (_ BitVec ".(length(sprintf("%b", $numTrackV))+4)."))\n";
+print $out "(declare-const COST_SIZE_P (_ BitVec ".(length(sprintf("%b", $numTrackV))+4)."))\n";
+print $out "(declare-const COST_SIZE_N (_ BitVec ".(length(sprintf("%b", $numTrackV))+4)."))\n";
+for my $i (0 .. $numTrackH-3){
+	print $out "(declare-const M2_TRACK_$i Bool)\n";
+}
+foreach my $key(keys %h_extnets){
+	for my $i (0 .. $numTrackH-3){
+		print $out "(declare-const N".$key."_M2_TRACK_$i Bool)\n";
+	}
+	print $out "(declare-const N".$key."_M2_TRACK Bool)\n";
+}
+#print $out "(declare-const METAL_SIZE (_ BitVec ".(length(sprintf("%b", $numTrackV))+4)."))\n";
+### Placement ###
+print "a   A. Variables for Placement\n";
+print $out ";A. Variables for Placement\n";
+print $out "(define-fun max ((x (_ BitVec ".(length(sprintf("%b", $numTrackV))+4).")) (y (_ BitVec ".(length(sprintf("%b", $numTrackV))+4)."))) (_ BitVec ".(length(sprintf("%b", $numTrackV))+4).")\n";
+print $out "  (ite (bvsgt x y) x y)\n";
+print $out ")\n";
+
+for my $i (0 .. $numInstance - 1) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	print $out "(declare-const x$i (_ BitVec ".(length(sprintf("%b", $numTrackV))+4)."))\n";     # instance x position
+	cnt("v", 0);
+	print $out "(declare-const ff$i Bool)\n";    # instance flip flag
+	cnt("v", 0);
+	### just for solution converter
+	print $out "(declare-const y$i (_ BitVec ".(length(sprintf("%b", $numPTrackH)))."))\n";     # instance y position
+	print $out "(declare-const uw$i (_ BitVec ".(length(sprintf("%b", $trackEachPRow)))."))\n";	# unit width
+	print $out "(declare-const w$i (_ BitVec ".(length(sprintf("%b", (2*$tmp_finger[0]+1))))."))\n";		# width
+	print $out "(declare-const nf$i (_ BitVec ".(length(sprintf("%b", $tmp_finger[0])))."))\n";    # num of finger
+	cnt("v", 0);
+	cnt("v", 0);
+	cnt("v", 0);
+	cnt("v", 0);
+
+}

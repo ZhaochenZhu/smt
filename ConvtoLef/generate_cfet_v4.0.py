@@ -543,7 +543,13 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
                       netID=words[6])
                     )
     elif words[0] == "VIA":
-      vias.append( Via(words[1], words[2], words[3], words[4], words[5]) )
+      vias.append( Via(
+                        fromMetal=words[1], 
+                        toMetal=words[2], 
+                        x=words[3],
+                        y=words[4], 
+                        netID=words[5])
+                      )
     elif words[0] == "EXTPIN":
       extpins.append( ExtPin(words[2], words[3], words[4], words[1], words[5], words[6]) )
 
@@ -687,8 +693,12 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
 
   lefLayerStr = ""
   # TODO print Metal layer info
-  for metalInfo in metals:
-    lefLayerStr += metalInfo.getLefLayerStr(techInfo)
+  for metal in metals:
+    lefLayerStr += metal.getLefLayerStr(techInfo)
+  
+  # print("***********************")
+  # print(lefLayerStr)
+  # print("***********************")
 
   lefStr = ""
   lefStr += "MACRO %s\n" % (cellName)

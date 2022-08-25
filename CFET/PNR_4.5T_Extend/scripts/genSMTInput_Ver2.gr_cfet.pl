@@ -82,22 +82,23 @@ my $stack_struct_flag = "PN"; #Identify PFET on NFET [PN] or NFET on PFET [NP] ;
 # metal pitch per layer
 my %mapMP = (
 	1 => 1,
-	2 => 2,
+	2 => 1,
 	3 => 2,
 	4 => 3	
 );
 # offset per layer
 my %mapOffSet = (
-	1 => 2, 
-	2 => 2, 
-	3 => 1, 
-	4 => 1
+	1 => 1, 
+	2 => 1, 
+	3 => 2, 
+	4 => 2
 );
 
-# standard cell dimension
+# standard cell dimension default
+# Width = M1_offset + M1_pitch * numPTrackV
+# Height = M2_offset + M2_pitch * numPTrackH
 my $std_width = 10;
 my $std_height = 10;
-
 
 #my @mapTrack = ([0,5], [1,4], [2,4], [3,1], [4,1], [5,0]);  # Placement vs. Routing Horizontal Track Mapping Array [Placement, Routing]
 #my @mapTrack = ([0,5], [1,4]);  # Placement vs. Routing Horizontal Track Mapping Array [Placement, Routing]
@@ -419,6 +420,13 @@ while (<$in>) {
 			print "a     # Horizontal Placement Tracks = $numPTrackH\n";
 		}
 	}
+
+	### Approximate Standard Cell Dimension
+	$std_width = $mapOffSet{"1"} + $mapMP{"1"} * $numPTrackV;
+	# $std_height = $mapOffSet{"2"} + $mapMP{"2"} * $numPTrackH;
+	$std_height = 10; # user define
+	print("******Updated Standard Cell Dimension: \n Width: $std_width \n Height: $std_height \n");
+	
 
 	### Infile Status: Instance Info
 	if ($infileStatus eq "inst") {
@@ -1734,19 +1742,18 @@ foreach my $vName (keys %vertices) {
 		}
 
 		if ($vertices{$udEdgeTerm1}[5][4] ne "null") { # Up Edge
-			if($col % 2 == 0){
-				# if col is even, construct edge to upper edge
-				$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
-				# [index] [v] [vU] 4 4
-				@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost, $vCost);
-				#print "@udEdge\n";
-				push (@udEdges, [@udEdge]);
-				$udEdgeIndex++;
-			}
+			# if col is even, construct edge to upper edge
+			$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
+			# [index] [v] [vU] 4 4
+			@udEdge = ($udEdgeIndex, $udEdgeTerm1, $udEdgeTerm2, $vCost, $vCost);
+			#print "@udEdge\n";
+			push (@udEdges, [@udEdge]);
+			$udEdgeIndex++;
 		}
 	}
-	else { # Odd Layers ==> Vertical; 1, 3, 5, ...
-		if($metal > 1 && $col %2 == 1){
+	else 
+	{ # Odd Layers ==> Vertical; 1, 3, 5, ...
+		if($metal > 1){
 			# if metal is 3, 5, 7... and col is odd, ignore
 			# why col cannot be odd
 			next;
@@ -1785,7 +1792,7 @@ foreach my $vName (keys %vertices) {
 				push (@udEdges, [@udEdge]);
 				$udEdgeIndex++;
 			}
-			elsif($col % 2 == 0){
+			else{
 				# exact same code as above, why???
 				$udEdgeTerm2 = $vertices{$udEdgeTerm1}[5][4];
 				if($metal == 3){
@@ -1832,9 +1839,7 @@ foreach (@temp_vertices) {
 	# print("iterate m$metal, r$row, c$col\n");
 	# YW: disregard odd layer if statement
 	if($metal%2!=0) { # odd layer: vertical --> col
-		if($col%2 == 1){	# ignore odd col: bc metal pitch?
-			next;
-		}
+		# ignore odd col: bc metal pitch?
 		
 		if($EXT_Parameter == 0){ # if not extensible YW: deleted commented
 			my $upOffset =  $mapOffSet{$metal + 1};
@@ -1857,9 +1862,7 @@ foreach (@temp_vertices) {
 		
 	} 
 	elsif ($metal%2==0) {	# even layer: horizontal --> row
-		if($row%2 == 1){	# ignore odd row: bc metal pitch?
-			next;
-		}
+		# ignore odd row: bc metal pitch?
 
 		if($EXT_Parameter == 0){ # if not extensible
 			my $upOffset =  $mapOffSet{$metal + 1};
@@ -1898,9 +1901,7 @@ foreach (@temp_vertices) {
 	# print("iterate m$metal, r$row, c$col\n");
 	# YW: disregard odd layer if statement
 	if($metal%2!=0) { # odd layer: vertical --> col
-		if($col%2 == 1){	# ignore odd col: bc metal pitch?
-			next;
-		}
+		# ignore odd col: bc metal pitch?
 		
 		if($EXT_Parameter == 0){ # if not extensible
 			# YW: deleted commented
@@ -1922,10 +1923,7 @@ foreach (@temp_vertices) {
 		
 	} 
 	elsif ($metal%2==0) {	# even layer: horizontal --> row
-		if($row%2 == 1){	# ignore odd row: bc metal pitch?
-			next;
-		}
-
+		# ignore odd row: bc metal pitch?
 		if($EXT_Parameter == 0){ # if not extensible
 			# YW: deleted commented
 			my $loOffset =  $mapOffSet{$metal - 1};
@@ -2024,10 +2022,9 @@ for my $metal (1 .. $numMetalLayer) {
 		# regex extract vertex information
 		my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
 		# print "metal$metal, row$row, col$col\n";
-		if($metal==1 && $col % 2 == 1){
-			next;
-		}
-		elsif($metal % 2 == 1 && $col % 2 == 1){
+
+		# skipping metal 1 layer
+		if($metal == 1){
 			next;
 		}
 
@@ -2360,9 +2357,254 @@ for my $pinID (0 .. $#pins) {
 
 print("Virtual Edge:\n");
 print(Dumper\@virtualEdges);
-# $VAR1 = [
-#           57,
-#           'm4r4c3',
-#           'pinSON',
-#           0
-#         ];
+
+my %edge_in = ();
+my %edge_out = ();
+for my $edge (0 .. @udEdges-1){
+	push @{ $edge_out{$udEdges[$edge][1]} }, $edge;
+	push @{ $edge_in{$udEdges[$edge][2]} }, $edge;
+}
+my %vedge_in = ();
+my %vedge_out = ();
+for my $edge (0 .. @virtualEdges-1){
+	push @{ $vedge_out{$virtualEdges[$edge][1]} }, $edge;
+	push @{ $vedge_in{$virtualEdges[$edge][2]} }, $edge;
+}
+
+## Variable, Constraints Number Count
+my $c_v_placement = 0;
+my $c_v_placement_aux = 0;
+my $c_v_routing = 0;
+my $c_v_routing_aux = 0;
+my $c_v_connect = 0;
+my $c_v_connect_aux = 0;
+my $c_v_dr = 0;
+my $c_c_placement = 0;
+my $c_c_routing = 0;
+my $c_c_connect = 0;
+my $c_c_dr = 0;
+my $c_l_placement = 0;
+my $c_l_routing = 0;
+my $c_l_connect = 0;
+my $c_l_dr = 0;
+
+my $type = "";
+my $idx = 0;
+sub cnt{
+	$type = @_[0];
+	$idx = @_[1];
+
+	## Variable
+	if($type eq "v"){
+		if($idx == 0){
+			$c_v_placement++;
+		}
+		elsif($idx == 1){
+			$c_v_placement_aux++;
+		}
+		elsif($idx == 2){
+			$c_v_routing++;
+		}
+		elsif($idx == 3){
+			$c_v_routing_aux++;
+		}
+		elsif($idx == 4){
+			$c_v_connect++;
+		}
+		elsif($idx == 5){
+			$c_v_connect_aux++;
+		}
+		elsif($idx == 6){
+			$c_v_dr++;
+		}
+		else{
+			print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+			exit(-1);
+		}
+	}
+	## Constraints
+	elsif($type eq "c"){
+		if($idx == 0){
+			$c_c_placement++;
+		}
+		elsif($idx == 1){
+			$c_c_routing++;
+		}
+		elsif($idx == 2){
+			$c_c_connect++;
+		}
+		elsif($idx == 3){
+			$c_c_dr++;
+		}
+		else{
+			print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+			exit(-1);
+		}
+	}
+	## Literals
+	elsif($type eq "l"){
+		if($idx == 0){
+			$c_l_placement++;
+		}
+		elsif($idx == 1){
+			$c_l_routing++;
+		}
+		elsif($idx == 2){
+			$c_l_connect++;
+		}
+		elsif($idx == 3){
+			$c_l_dr++;
+		}
+		else{
+			print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+			exit(-1);
+		}
+	}
+	else{
+		print "[Warning] Count Option is Invalid!! [type=$type, idx=$idx]\n";
+		exit(-1);
+	}
+	return;
+}
+
+$vEdgeNumber = scalar @virtualEdges;
+print "a     # Virtual Edges     = $vEdgeNumber\n";
+
+### END:  DATA STRUCTURE ##############################################################################################
+print ("############################################## Writing to $outfile\n");
+open (my $out, '>', $outfile);
+print "a   Generating SMT-LIB 2.0 Standard Input Code.\n";
+
+### INIT
+print $out ";Formulation for SMT\n";
+print $out ";	Format: SMT-LIB 2.0\n";
+print $out ";	Version: 1.0\n";
+print $out ";	Input File:  $workdir/$infile\n";
+
+print $out ";Layout Information\n";
+print $out ";	Placement\n";
+### TODO for each layer
+print $out ";	# Vertical Tracks   = $numPTrackV\n";
+print $out ";	# Horizontal Tracks = $numPTrackH\n";
+print $out ";	# Instances         = $numInstance\n";
+print $out ";	Routing\n";
+### Routing start at M2
+for my $metal (2 .. $numMetalLayer) {
+	print $out ";	# M$metal Vertical Tracks = $map_numTrackV{$metal}\n";
+}
+for my $metal (2 .. $numMetalLayer) {
+	print $out ";	# M$metal Horizontal Tracks = $map_numTrackH{$metal}\n";
+}
+# print $out ";	# Vertical Tracks   = $numTrackV\n";
+# print $out ";	# Horizontal Tracks = $numTrackH\n";
+print $out ";	# Nets              = $totalNets\n";
+print $out ";	# Pins              = $totalPins\n";
+print $out ";	# Sources           = $numSources\n";
+print $out ";	List of Sources   = ";
+foreach my $key (keys %sources) {
+	print $out "$key ";
+}
+print $out "\n";
+print $out ";	# Sinks             = $numSinks\n";
+print $out ";	List of Sinks     = ";
+foreach my $key (keys %sinks) {
+	print $out "$key ";
+}
+print $out "\n";
+print $out ";	# Outer Pins        = $numOuterPins\n";
+print $out ";	List of Outer Pins= ";
+for my $i (0 .. $#outerPins) {              # All SON (Super Outer Node)
+	print $out "$outerPins[$i][0] ";        # 0 : Pin number , 1 : net number
+}
+print $out "\n";
+print $out ";	Outer Pins Information= ";
+for my $i (0 .. $#outerPins) {              # All SON (Super Outer Node)
+	print $out " $outerPins[$i][1]=$outerPins[$i][2] ";        # 0 : Net number , 1 : Commodity number
+}
+print $out "\n";
+print $out "; Parameters: SON=$SON DPR=$DoublePowerRail MAR=$MAR_Parameter EOL=$EOL_Parameter VR=$VR_Parameter PRL=$PRL_Parameter SHR=$SHR_Parameter MPL=$MPL_Parameter\n";
+print $out "; Parameters: MM=$MM_Parameter LOC=$Local_Parameter PART=$Partition_Parameter BCP=$BCP_Parameter NDE=$NDE_Parameter BS=$BS_Parameter PE=$PE_Parameter\n";
+print $out "; Parameters: M2Track=$M2_TRACK_Parameter M2Length=$M2_Length_Parameter Dint=$dint Stack=$stack_struct_flag, DVsamenet = $VR_double_samenet_flag, Stackvia = $VR_stacked_via_flag\n";
+print $out "\n\n";
+
+my $str = "";
+my %h_var = ();
+my $idx_var = 1;
+my $idx_clause = 1;
+my %h_assign = ();
+my %h_assign_new = ();
+my $isFirstLoop = 1;
+
+sub setVar{
+	my $varName = @_[0];
+	my $type = @_[1];
+
+	if(!exists($h_var{$varName})){
+		cnt("v", $type);
+		$h_var{$varName} = $idx_var;
+		$idx_var++;
+	}
+	return;
+}
+sub setVar_wo_cnt{
+	my $varName = @_[0];
+	my $type = @_[1];
+
+	if(!exists($h_var{$varName})){
+		$h_var{$varName} = -1;
+	}
+	return;
+}
+
+### Z3 Option Set ###
+print $out ";(set-option :produce-unsat-cores true)\n";
+print $out ";Begin SMT Formulation\n\n";
+# encode by the largest numTrackV across all metal layers
+my $max_key_V = (sort {$map_numTrackV{$a} <=> $map_numTrackV{$b}} keys %map_numTrackV)[scalar %map_numTrackV - 1];
+my $max_key_H = (sort {$map_numTrackH{$a} <=> $map_numTrackH{$b}} keys %map_numTrackH)[scalar %map_numTrackH - 1];
+
+print $out "(declare-const COST_SIZE (_ BitVec ".(length(sprintf("%b", $map_numTrackV{$max_key_V}))+4)."))\n";
+print $out "(declare-const COST_SIZE_P (_ BitVec ".(length(sprintf("%b", $map_numTrackV{$max_key_V}))+4)."))\n";
+print $out "(declare-const COST_SIZE_N (_ BitVec ".(length(sprintf("%b", $map_numTrackV{$max_key_V}))+4)."))\n";
+for my $i (0 .. $map_numTrackH{"2"}-3){
+	print $out "(declare-const M2_TRACK_$i Bool)\n";
+}
+foreach my $key(keys %h_extnets){
+	for my $i (0 .. $map_numTrackH{"2"}-3){
+		print $out "(declare-const N".$key."_M2_TRACK_$i Bool)\n";
+	}
+	print $out "(declare-const N".$key."_M2_TRACK Bool)\n";
+}
+#print $out "(declare-const METAL_SIZE (_ BitVec ".(length(sprintf("%b", $numTrackV))+4)."))\n";
+### Placement ###
+print "a   A. Variables for Placement\n";
+print $out ";A. Variables for Placement\n";
+print $out "(define-fun max ((x (_ BitVec ".(length(sprintf("%b", $map_numTrackV{$max_key_V}))+4).")) (y (_ BitVec ".(length(sprintf("%b", $map_numTrackV{$max_key_V}))+4)."))) (_ BitVec ".(length(sprintf("%b", $map_numTrackV{$max_key_V}))+4).")\n";
+print $out "  (ite (bvsgt x y) x y)\n";
+print $out ")\n";
+
+for my $i (0 .. $numInstance - 1) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	print $out "(declare-const x$i (_ BitVec ".(length(sprintf("%b", $map_numTrackV{$max_key_V}))+4)."))\n";     # instance x position
+	cnt("v", 0);
+	print $out "(declare-const ff$i Bool)\n";    # instance flip flag
+	cnt("v", 0);
+	### just for solution converter
+	print $out "(declare-const y$i (_ BitVec ".(length(sprintf("%b", $numPTrackH)))."))\n";     # instance y position
+	print $out "(declare-const uw$i (_ BitVec ".(length(sprintf("%b", $trackEachPRow)))."))\n";	# unit width
+	print $out "(declare-const w$i (_ BitVec ".(length(sprintf("%b", (2*$tmp_finger[0]+1))))."))\n";		# width
+	print $out "(declare-const nf$i (_ BitVec ".(length(sprintf("%b", $tmp_finger[0])))."))\n";    # num of finger
+	cnt("v", 0);
+	cnt("v", 0);
+	cnt("v", 0);
+	cnt("v", 0);
+
+}
+
+# print($map_numTrackV{"2"});
+# print($map_numTrackH{"2"});
+
+print "a   B. Constraints for Placement\n";
+print $out "\n";
+print $out ";B. Constraints for Placement\n";
