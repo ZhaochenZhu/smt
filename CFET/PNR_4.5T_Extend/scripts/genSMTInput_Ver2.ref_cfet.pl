@@ -1995,3 +1995,1449 @@ for my $i (0 .. $numInstance - 1) {
 	cnt("v", 0);
 
 }
+
+print "a   B. Constraints for Placement\n";
+print $out "\n";
+print $out ";B. Constraints for Placement\n";
+
+print("trackEachPRow ".$trackEachPRow."\n");
+for my $i (0 .. $numInstance - 1) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	print(Dumper\@tmp_finger);
+	#print $out "(assert (and (>= x$i 0) (<= x$i ".($numPTrackV - 2*$tmp_finger[0] + 1).")))\n";
+	my $len = length(sprintf("%b", $numTrackV))+4;
+	my $len2 = length(sprintf("%b", 0));
+	my $tmp_str = "";
+	if($len>1){
+		for my $i(0 .. $len-$len2-1){
+			$tmp_str.="0";
+		}
+	}
+	my $s_first = "#b".$tmp_str."0";
+	$len2 = length(sprintf("%b", $numPTrackV - 2*$tmp_finger[0] + 1));
+	my $tmp_str = "";
+	if($len>1){
+		for my $i(0 .. $len-$len2-1){
+			$tmp_str.="0";
+		}
+	}
+	my $s_second = "#b".$tmp_str.sprintf("%b", ($numPTrackV - 2*$tmp_finger[0]));
+	#print $out "(assert (and (bvuge x$i $s_first) (bvule x$i $s_second)))\n";
+	print $out "(assert (and (bvsge x$i (_ bv0 $len)) (bvsle x$i (_ bv".($numPTrackV - 2*$tmp_finger[0] - 1)." $len))))\n";
+	cnt("l", 0);
+	cnt("l", 0);
+	cnt("c", 0);
+}
+
+for my $i (0 .. $lastIdxPMOS) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	#print $out "(assert (= y$i (_ bv".($numPTrackH-$inst[$i][2]/$tmp_finger[0])." ".length(sprintf("%b", $numPTrackH)).")))\n";
+	print $out "(assert (= y$i (_ bv0 ".length(sprintf("%b", $numPTrackH)).")))\n"; # CFET y coordinate overlapping
+	cnt("l", 0);
+	cnt("c", 0);
+	print $out "(assert (= nf$i (_ bv".$tmp_finger[0]." ".length(sprintf("%b", $tmp_finger[0])).")))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+	print $out "(assert (= uw$i (_ bv".$inst[$i][2]/$tmp_finger[0]." ".(length(sprintf("%b", $trackEachPRow))).")))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+	print $out "(assert (= w$i (_ bv".(2*$tmp_finger[0]+1)." ".length(sprintf("%b", 2*$tmp_finger[0]+1)).")))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+}
+
+for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	print $out "(assert (= y$i (_ bv0 ".length(sprintf("%b", $numPTrackH)).")))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+	print $out "(assert (= nf$i (_ bv".$tmp_finger[0]." ".length(sprintf("%b", $tmp_finger[0])).")))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+	print $out "(assert (= uw$i (_ bv".$inst[$i][2]/$tmp_finger[0]." ".(length(sprintf("%b", $trackEachPRow))).")))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+	print $out "(assert (= w$i (_ bv".(2*$tmp_finger[0]+1)." ".length(sprintf("%b", 2*$tmp_finger[0]+1)).")))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+}
+
+for my $i (0 .. $numInstance - 1) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	my $len = length(sprintf("%b", $numTrackV))+4;
+	my $tmp_str = "";
+	if($len>1){
+		for my $i(0 .. $len-2){
+			$tmp_str.="0";
+		}
+	}
+	#print $out "(assert (= (bvsmod x$i (_ bv2 $len)) (_ bv0 $len)))\n";
+	print $out "(assert (= ((_ extract 0 0) x$i) #b1))\n";
+	cnt("l", 0);
+	cnt("c", 0);
+}
+
+my $tmp_minWidth = 0;
+for my $i (0 .. $lastIdxPMOS) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	$tmp_minWidth+=2*$tmp_finger[0];
+}
+$minWidth = $tmp_minWidth;
+$tmp_minWidth = 0;
+for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	$tmp_minWidth+=2*$tmp_finger[0];
+}
+if($tmp_minWidth>$minWidth){
+	$minWidth = $tmp_minWidth;
+}
+
+if($BS_Parameter == 1){
+	print $out ";Removing Symmetric Placement Cases\n";
+	my $numPMOS = $lastIdxPMOS + 1;
+	my $numNMOS = $numInstance - $numPMOS;
+	print "numPMOS : $numPMOS  numNMOS : $numNMOS\n";
+	my @arr_pmos = ();
+	my @arr_nmos = ();
+
+	for my $i (0 .. $lastIdxPMOS){
+		push(@arr_pmos, $i);
+	}
+	for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
+		push(@arr_nmos, $i);
+	}
+
+
+	my @comb_l_pmos = ();
+	my @comb_l_nmos = ();
+	my @comb_c_pmos = ();
+	my @comb_c_nmos = ();
+	my @comb_r_pmos = ();
+	my @comb_r_nmos = ();
+
+	if($numPMOS % 2 == 0){
+		my @tmp_comb_l_pmos = combine([@arr_pmos],$numPMOS/2);
+		for my $i(0 .. $#tmp_comb_l_pmos){
+			my @tmp_comb = ();
+			my $isComb = 0;
+			for my $j(0 .. $lastIdxPMOS){
+				for my $k(0 .. $#{$tmp_comb_l_pmos[$i]}){
+					if($tmp_comb_l_pmos[$i][$k] == $j){
+						$isComb = 1;
+						last;
+					}
+				}
+				if($isComb == 0){
+					push(@tmp_comb, $j);
+				}
+				$isComb = 0;
+			}
+			push(@comb_l_pmos, $tmp_comb_l_pmos[$i]);
+			push(@comb_r_pmos, [@tmp_comb]);
+			if($#tmp_comb_l_pmos == 1){
+				last;
+			}
+		}
+	}
+	else{
+		for my $m(0 .. $numPMOS - 1){
+			@arr_pmos = ();
+			for my $i (0 .. $lastIdxPMOS){
+				if($i!=$m){
+					push(@arr_pmos, $i);
+				}
+			}
+			my @tmp_comb_l_pmos = combine([@arr_pmos],($numPMOS-1)/2);
+			for my $i(0 .. $#tmp_comb_l_pmos){
+				my @tmp_comb = ();
+				my $isComb = 0;
+				for my $j(0 .. $lastIdxPMOS){
+					for my $k(0 .. $#{$tmp_comb_l_pmos[$i]}){
+						if($tmp_comb_l_pmos[$i][$k] == $j || $j == $m){
+							$isComb = 1;
+							last;
+						}
+					}
+					if($isComb == 0){
+						push(@tmp_comb, $j);
+					}
+					$isComb = 0;
+				}
+				push(@comb_l_pmos, $tmp_comb_l_pmos[$i]);
+				push(@comb_r_pmos, [@tmp_comb]);
+				push(@comb_c_pmos, [($m)]);
+				if($#tmp_comb_l_pmos == 1){
+					last;
+				}
+			}
+		}
+	}
+	if($numNMOS % 2 == 0){
+		my @tmp_comb_l_nmos = combine([@arr_nmos],$numNMOS/2);
+		for my $i(0 .. $#tmp_comb_l_nmos){
+			my @tmp_comb = ();
+			my $isComb = 0;
+			for my $j ($lastIdxPMOS + 1 .. $numInstance - 1) {
+				for my $k(0 .. $#{$tmp_comb_l_nmos[$i]}){
+					if($tmp_comb_l_nmos[$i][$k] == $j){
+						$isComb = 1;
+						last;
+					}
+				}
+				if($isComb == 0){
+					push(@tmp_comb, $j);
+				}
+				$isComb = 0;
+			}
+			push(@comb_l_nmos, $tmp_comb_l_nmos[$i]);
+			push(@comb_r_nmos, [@tmp_comb]);
+			if($#comb_l_nmos == 1){
+				last;
+			}
+		}
+	}
+	else{
+		for my $m ($lastIdxPMOS + 1 .. $numInstance - 1) {
+			@arr_nmos = ();
+			for my $i (0 .. $numNMOS-1){
+				if($i+$lastIdxPMOS+1!=$m){
+					push(@arr_nmos, $i+$lastIdxPMOS+1);
+				}
+			}
+			my @tmp_comb_l_nmos = combine([@arr_nmos],($numNMOS-1)/2);
+			for my $i(0 .. $#tmp_comb_l_nmos){
+				my @tmp_comb = ();
+				my $isComb = 0;
+				for my $j ($lastIdxPMOS + 1 .. $numInstance - 1) {
+					for my $k(0 .. $#{$tmp_comb_l_nmos[$i]}){
+						if($tmp_comb_l_nmos[$i][$k] == $j || $j == $m){
+							$isComb = 1;
+							last;
+						}
+					}
+					if($isComb == 0){
+						push(@tmp_comb, $j);
+					}
+					$isComb = 0;
+				}
+				push(@comb_l_nmos, $tmp_comb_l_nmos[$i]);
+				push(@comb_r_nmos, [@tmp_comb]);
+				push(@comb_c_nmos, [($m)]);
+				if($#tmp_comb_l_nmos == 1){
+					last;
+				}
+			}
+		}
+	}
+
+	for my $i(0 .. $#comb_l_pmos){
+		print $out "(assert (or";
+		for my $l(0 .. $#{$comb_l_pmos[$i]}){
+			for my $m(0 .. $#{$comb_r_pmos[$i]}){
+				print $out " (bvslt x$comb_l_pmos[$i][$l] x$comb_r_pmos[$i][$m])";
+				cnt("l", 0);
+				for my $n(0 .. $#{$comb_c_pmos[$i]}){
+					print $out " (bvslt x$comb_l_pmos[$i][$l] x$comb_c_pmos[$i][$n])";
+					print $out " (bvsgt x$comb_r_pmos[$i][$m] x$comb_c_pmos[$i][$n])";
+					cnt("l", 0);
+					cnt("l", 0);
+				}
+			}
+		}
+		print $out "))\n";
+		#print $out " (and";
+		#for my $j(0 .. $#comb_l_nmos){
+		#	print $out " (or";
+		#	for my $l(0 .. $#{$comb_l_nmos[$j]}){
+		#		for my $m(0 .. $#{$comb_r_nmos[$j]}){
+		#			print $out " (bvslt x$comb_l_nmos[$j][$l] x$comb_r_nmos[$j][$m])";
+		#			cnt("l", 0);
+		#			for my $n(0 .. $#{$comb_c_nmos[$j]}){
+		#				print $out " (bvslt x$comb_l_nmos[$j][$l] x$comb_c_nmos[$j][$n])";
+		#				print $out " (bvsgt x$comb_r_nmos[$j][$m] x$comb_c_nmos[$j][$n])";
+		#				cnt("l", 0);
+		#				cnt("l", 0);
+		#			}
+		#		}
+		#	}
+		#	print $out ")";
+		#}
+		#print $out ")))\n";
+		cnt("c", 0);
+	}
+	print $out ";Set flip status to false for FETs which have even numbered fingers\n";
+	for my $i (0 .. $lastIdxPMOS) {
+		my @tmp_finger = ();
+		@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+		if($tmp_finger[0]%2==0){
+			print $out "(assert (= ff$i false))\n";
+			cnt("l", 0);
+			cnt("c", 0);
+		}
+	}
+	for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
+		my @tmp_finger = ();
+		@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+		if($tmp_finger[0]%2==0){
+			print $out "(assert (= ff$i false))\n";
+			cnt("l", 0);
+			cnt("c", 0);
+		}
+	}
+	print $out ";End of Symmetric Removal\n";
+}
+
+my @g_p_h1 = ();
+my @g_p_h2 = ();
+my @g_p_h3 = ();
+my @g_n_h1 = ();
+my @g_n_h2 = ();
+my @g_n_h3 = ();
+my $w_p_h1 = 0;
+my $w_p_h2 = 0;
+my $w_p_h3 = 0;
+my $w_n_h1 = 0;
+my $w_n_h2 = 0;
+my $w_n_h3 = 0;
+my %h_g_inst = ();
+#for my $i (0 .. $lastIdxPMOS) {
+#	my @tmp_finger = ();
+#	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+#	if($tmp_finger[0]%2==0){
+#		print $out "(assert (= ff$i false))\n";
+#		cnt("l", 0);
+#		cnt("c", 0);
+#	}
+#}
+#for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
+#	my @tmp_finger = ();
+#	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+#	if($tmp_finger[0]%2==0){
+#		print $out "(assert (= ff$i false))\n";
+#		cnt("l", 0);
+#		cnt("c", 0);
+#	}
+#}
+# Mark: Only m<=3 is expected? We might have larger width
+for my $i (0 .. $lastIdxPMOS) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	if($inst[$i][2]/$tmp_finger[0] == 1){
+		push(@g_p_h1, $i);
+		$w_p_h1+=2*$tmp_finger[0];
+		$h_g_inst{$i} = 1;
+	}
+	elsif($inst[$i][2]/$tmp_finger[0] == 2){
+		push(@g_p_h2, $i);
+		$w_p_h2+=2*$tmp_finger[0];
+		$h_g_inst{$i} = 2;
+	}
+	elsif($inst[$i][2]/$tmp_finger[0] == 3){
+		push(@g_p_h3, $i);
+		$w_p_h3+=2*$tmp_finger[0];
+		$h_g_inst{$i} = 3;
+	}
+}
+for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
+	my @tmp_finger = ();
+	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	if($inst[$i][2]/$tmp_finger[0] == 1){
+		push(@g_n_h1, $i);
+		$w_n_h1+=2*$tmp_finger[0];
+		$h_g_inst{$i} = 1;
+	}
+	elsif($inst[$i][2]/$tmp_finger[0] == 2){
+		push(@g_n_h2, $i);
+		$w_n_h2+=2*$tmp_finger[0];
+		$h_g_inst{$i} = 2;
+	}
+	elsif($inst[$i][2]/$tmp_finger[0] == 3){
+		push(@g_n_h3, $i);
+		$w_n_h3+=2*$tmp_finger[0];
+		$h_g_inst{$i} = 3;
+	}
+}
+
+if($NDE_Parameter == 1) {
+#for my $i (0 .. $#g_p_h1){
+#	for my $j (0 .. $#g_p_h2){
+#		print $out "(assert (bvslt x$g_p_h1[$i] x$g_p_h2[$j]))\n";
+#		cnt("l", 0);
+#		cnt("l", 0);
+#		cnt("c", 0);
+#	}
+#	for my $k (0 .. $#g_p_h3){
+#		print $out "(assert (bvslt x$g_p_h1[$i] x$g_p_h3[$k]))\n";
+#		cnt("l", 0);
+#		cnt("l", 0);
+#		cnt("c", 0);
+#	}
+#	print $out "(assert (bvslt x$g_p_h1[$i] (_ bv".($numTrackV - 1 - ($w_p_h2>0?($w_p_h2+1):0) - ($w_p_h3>0?($w_p_h3+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#}
+#for my $j (0 .. $#g_p_h2){
+#	for my $k (0 .. $#g_p_h3){
+#		print $out "(assert (bvslt x$g_p_h2[$j] x$g_p_h3[$k]))\n";
+#		cnt("c", 0);
+#	}
+#	print $out "(assert (bvslt x$g_p_h2[$j] (_ bv".($numTrackV - 1 - ($w_p_h3>0?($w_p_h3+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#	print $out "(assert (bvsgt x$g_p_h2[$j] (_ bv".(($w_p_h1>0?($w_p_h1+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#}
+#for my $k (0 .. $#g_p_h3){
+#	print $out "(assert (bvslt x$g_p_h3[$k] (_ bv".($numTrackV - 1)." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#	print $out "(assert (bvsgt x$g_p_h3[$k] (_ bv".(($w_p_h1>0?($w_p_h1+1):0) + ($w_p_h2>0?($w_p_h2+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";
+#	cnt("l", 0);
+#	cnt("c", 0);
+#}
+#for my $i (0 .. $#g_n_h1){
+#	for my $j (0 .. $#g_n_h2){
+#		print $out "(assert (bvslt x$g_n_h1[$i] x$g_n_h2[$j]))\n";
+#		cnt("l", 0);
+#		cnt("l", 0);
+#		cnt("c", 0);
+#	}
+#	for my $k (0 .. $#g_n_h3){
+#		print $out "(assert (bvslt x$g_n_h1[$i] x$g_n_h3[$k]))\n";
+#		cnt("l", 0);
+#		cnt("l", 0);
+#		cnt("c", 0);
+#	}
+#	print $out "(assert (bvslt x$g_n_h1[$i] (_ bv".($numTrackV - 1 - ($w_n_h2>0?($w_n_h2+1):0) - ($w_n_h3>0?($w_n_h3+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#}
+#for my $j (0 .. $#g_n_h2){
+#	for my $k (0 .. $#g_n_h3){
+#		print $out "(assert (bvslt x$g_n_h2[$j] x$g_n_h3[$k]))\n";
+#		cnt("l", 0);
+#		cnt("l", 0);
+#		cnt("c", 0);
+#	}
+#	print $out "(assert (bvslt x$g_n_h2[$j] (_ bv".($numTrackV - 1 - ($w_n_h3>0?($w_n_h3+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#	print $out "(assert (bvsgt x$g_n_h2[$j] (_ bv".(($w_n_h1>0?($w_n_h1+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#}
+#for my $k (0 .. $#g_n_h3){
+#	print $out "(assert (bvslt x$g_n_h3[$k] (_ bv".($numTrackV - 1)." ".(length(sprintf("%b", $numTrackV))+4).")))\n";;
+#	cnt("l", 0);
+#	cnt("c", 0);
+#	print $out "(assert (bvsgt x$g_n_h3[$k] (_ bv".(($w_n_h1>0?($w_n_h1+1):0) + ($w_n_h2>0?($w_n_h2+1):0))." ".(length(sprintf("%b", $numTrackV))+4).")))\n";
+#	cnt("l", 0);
+#	cnt("c", 0);
+#}
+}
+
+for my $i (0 .. $lastIdxPMOS) {
+	for my $j (0 .. $lastIdxPMOS) {
+		if($i != $j){
+			my $tmp_key_S_i = $h_pin_id{"$inst[$i][0]_S"};
+			my $tmp_key_D_i = $h_pin_id{"$inst[$i][0]_D"};
+			my $tmp_key_S_j = $h_pin_id{"$inst[$j][0]_S"};
+			my $tmp_key_D_j = $h_pin_id{"$inst[$j][0]_D"};
+			my @tmp_finger_i = ();
+			@tmp_finger_i = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+			my @tmp_finger_j = ();
+			@tmp_finger_j = getAvailableNumFinger($inst[$j][2], $trackEachPRow);
+
+			my $height_i = $inst[$i][2]/$tmp_finger_i[0];
+			my $height_j = $inst[$j][2]/$tmp_finger_j[0];
+			
+			my $tmp_str_ij = "";
+			my $tmp_str_ji = "";
+			if($tmp_finger_i[0] % 2 == 0 && $tmp_finger_j[0] % 2 == 0){
+				$tmp_str_ij = "(= (_ bv$tmp_key_S_i ".length(sprintf("%b", $numNets_org)).") (_ bv$tmp_key_S_j ".length(sprintf("%b", $numNets_org))."))";
+				$tmp_str_ji = "(= (_ bv$tmp_key_S_i ".length(sprintf("%b", $numNets_org)).") (_ bv$tmp_key_S_j ".length(sprintf("%b", $numNets_org))."))";
+			}
+			elsif($tmp_finger_i[0] % 2 == 0 && $tmp_finger_j[0] % 2 == 1){
+				# if nf % 2 == 1, if ff = 1 nl = $tmp_key_D, nr = $tmp_key_S
+				#                 if ff = 0 nl = $tmp_key_S, nr = $tmp_key_D
+				# nri = nlj
+				if($tmp_key_S_i == $tmp_key_D_j){
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ij = "";
+					}
+					else{
+						$tmp_str_ij = "(= ff$j true)";
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ij = "(= ff$j false)";
+					}
+					else{
+						$tmp_str_ij = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ij = "(ite (= ff$j 1) (= $tmp_key_S_i $tmp_key_D_j) (= $tmp_key_S_i $tmp_key_S_j))";
+				# nli = nrj
+				if($tmp_key_S_i == $tmp_key_S_j){
+					if($tmp_key_S_i == $tmp_key_D_j){
+						$tmp_str_ji = "";
+					}
+					else{
+						$tmp_str_ji = "(= ff$j true)";
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_D_j){
+						$tmp_str_ji = "(= ff$j false)";
+					}
+					else{
+						$tmp_str_ji = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ji = "(ite (= ff$j 1) (= $tmp_key_S_i $tmp_key_S_j) (= $tmp_key_S_i $tmp_key_D_j))";
+			}
+			elsif($tmp_finger_i[0] % 2 == 1 && $tmp_finger_j[0] % 2 == 0){
+				# if nf % 2 == 1, if ff = 1 nl = $tmp_key_D, nr = $tmp_key_S
+				#                 if ff = 0 nl = $tmp_key_S, nr = $tmp_key_D
+				# nri = nlj
+				if($tmp_key_S_i == $tmp_key_S_j){
+					if($tmp_key_D_i == $tmp_key_S_j){
+						$tmp_str_ij = "";
+					}
+					else{
+						$tmp_str_ij = "(= ff$i true)";
+					}
+				}
+				else{
+					if($tmp_key_D_i == $tmp_key_S_j){
+						$tmp_str_ij = "(= ff$i false)";
+					}
+					else{
+						$tmp_str_ij = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ij = "(ite (= ff$i 1) (= $tmp_key_S_i $tmp_key_S_j) (= $tmp_key_D_i $tmp_key_S_j))";
+				# nli = nrj
+				if($tmp_key_D_i == $tmp_key_S_j){
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ji = "";
+					}
+					else{
+						$tmp_str_ji = "(= ff$i true)";
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ji = "(= ff$i false)";
+					}
+					else{
+						$tmp_str_ji = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ji = "(ite (= ff$i 1) (= $tmp_key_D_i $tmp_key_S_j) (= $tmp_key_S_i $tmp_key_S_j))";
+			}
+			elsif($tmp_finger_i[0] % 2 == 1 && $tmp_finger_j[0] % 2 == 1){
+				# if nf % 2 == 1, if ff = 1 nl = $tmp_key_D, nr = $tmp_key_S
+				#                 if ff = 0 nl = $tmp_key_S, nr = $tmp_key_D
+				# nri = nlj
+#				$tmp_str_ij = "(ite (and (= ff$i 1) (= ff$j 1)) (= $tmp_key_S_i $tmp_key_D_j)";
+#				$tmp_str_ij = $tmp_str_ij." (ite (= ff$i 1) (= $tmp_key_S_i $tmp_key_S_j)";
+#				$tmp_str_ij = $tmp_str_ij." (ite (= ff$j 1) (= $tmp_key_D_i $tmp_key_D_j)";
+#				$tmp_str_ij = $tmp_str_ij." (= $tmp_key_D_i $tmp_key_S_j))))";
+				if($tmp_key_S_i == $tmp_key_D_j){
+					if($tmp_key_S_i == $tmp_key_S_j){
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi = 0,1, ffj = 0,1
+								$tmp_str_ij = "";
+							}
+							else{
+								## ffi,ffj!=0 at the same time
+								$tmp_str_ij = "(or (>= ff$i true) (>= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ~(ffi=0 & ffj=1)
+								$tmp_str_ij = "(or (and (= ff$i true) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## ffi = 1
+								$tmp_str_ij = "(= ff$i true)";
+							}
+						}
+					}
+					else{
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffj=1 or (ffi = 0 and ffj= 0)
+								$tmp_str_ij = "(or (and (= ff$i false) (= ff$j false)) (= ff$j true))";
+							}
+							else{
+								## ffj=1
+								$tmp_str_ij = "(= ff$j true)";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi = ffj
+								$tmp_str_ij = "(= ff$i ff$j)";
+							}
+							else{
+								## ffi=1 and ffj=1
+								$tmp_str_ij = "(and (= ff$i true) (= ff$j true))";
+							}
+						}
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_S_j){
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## (ffi=0 and ffj=1) or ffj=0
+								$tmp_str_ij = "(or (and (= ff$i false) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## (ffi=0 and ffj=1) or (ffi=1 and ffj=0)
+								$tmp_str_ij = "(or (and (= ff$i false) (= ff$j true)) (and (= ff$i true) (= ff$j false)))";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffj =0
+								$tmp_str_ij = "(= ff$j false)";
+							}
+							else{
+								## ffi=1 and ffj=0
+								$tmp_str_ij = "(and (= ff$i true) (= ff$j false))";
+							}
+						}
+					}
+					else{
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi=0
+								$tmp_str_ij = "(= ff$i false)";
+							}
+							else{
+								## ffi=0 and ffj=1
+								$tmp_str_ij = "(and (= ff$i false) (= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi=0 and ffj=0
+								$tmp_str_ij = "(and (= ff$i false) (= ff$j false))";
+							}
+							else{
+								## ffi=0 and ffj=0
+								$tmp_str_ij = "(= #b1 #b0)";
+							}
+						}
+					}
+				}
+				# nli = nrj
+#				$tmp_str_ji = "(ite (and (= ff$i 1) (= ff$j 1)) (= $tmp_key_D_i $tmp_key_S_j)";
+#				$tmp_str_ji = $tmp_str_ji." (ite (= ff$i 1) (= $tmp_key_D_i $tmp_key_D_j)";
+#				$tmp_str_ji = $tmp_str_ji." (ite (= ff$j 1) (= $tmp_key_S_i $tmp_key_S_j)";
+#				$tmp_str_ji = $tmp_str_ji." (= $tmp_key_S_i $tmp_key_D_j))))";
+				if($tmp_key_D_i == $tmp_key_S_j){
+					if($tmp_key_D_i == $tmp_key_D_j){
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi = 0,1, ffj = 0,1
+								$tmp_str_ji = "";
+							}
+							else{
+								## ffi,ffj!=0 at the same time
+								$tmp_str_ji = "(or (>= ff$i true) (>= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ~(ffi=0 & ffj=1)
+								$tmp_str_ji = "(or (and (= ff$i true) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## ffi = 1
+								$tmp_str_ji = "(= ff$i true)";
+							}
+						}
+					}
+					else{
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffj=1 or (ffi = 0 and ffj= 0)
+								$tmp_str_ji = "(or (and (= ff$i false) (= ff$j false)) (= ff$j true))";
+							}
+							else{
+								## ffj=1
+								$tmp_str_ji = "(= ff$j true)";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi = ffj
+								$tmp_str_ji = "(= ff$i ff$j)";
+							}
+							else{
+								## ffi=1 and ffj=1
+								$tmp_str_ji = "(and (= ff$i true) (= ff$j true))";
+							}
+						}
+					}
+				}
+				else{
+					if($tmp_key_D_i == $tmp_key_D_j){
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## (ffi=0 and ffj=1) or ffj=0
+								$tmp_str_ji = "(or (and (= ff$i false) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## (ffi=0 and ffj=1) or (ffi=1 and ffj=0)
+								$tmp_str_ji = "(or (and (= ff$i false) (= ff$j true)) (and (= ff$i true) (= ff$j false)))";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffj =0
+								$tmp_str_ji = "(= ff$j false)";
+							}
+							else{
+								## ffi=1 and ffj=0
+								$tmp_str_ji = "(and (= ff$i true) (= ff$j false))";
+							}
+						}
+					}
+					else{
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi=0
+								$tmp_str_ji = "(= ff$i false)";
+							}
+							else{
+								## ffi=0 and ffj=1
+								$tmp_str_ji = "(and (= ff$i false) (= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi=0 and ffj=0
+								$tmp_str_ji = "(and (= ff$i false) (= ff$j false))";
+							}
+							else{
+								## ffi=0 and ffj=0
+								$tmp_str_ji = "(= #b1 #b0)";
+							}
+						}
+					}
+				}
+			}
+			my $len = length(sprintf("%b", $numTrackV))+4;
+			my $len2 = length(sprintf("%b", 2*$tmp_finger_i[0]));
+			my $tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $f_wi = "(_ bv".(2*$tmp_finger_i[0])." $len)";
+			$len2 = length(sprintf("%b", 2*$tmp_finger_j[0]));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $f_wj = "(_ bv".(2*$tmp_finger_j[0])." $len)";
+			$len2 = length(sprintf("%b", $XOL_Parameter));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $xol = "(_ bv".$XOL_Parameter." $len)";
+			$len2 = length(sprintf("%b", 2*$tmp_finger_i[0] + $XOL_Parameter));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $xol_i = "(_ bv".(2*$tmp_finger_i[0] + $XOL_Parameter)." $len)";
+			$len2 = length(sprintf("%b", 2*$tmp_finger_j[0] + $XOL_Parameter));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $xol_j = "(_ bv".(2*$tmp_finger_j[0] + $XOL_Parameter)." $len)";
+			if(($height_i == $height_j) && ($tmp_key_S_i == $tmp_key_S_j || $tmp_key_S_i == $tmp_key_D_j || $tmp_key_D_i == $tmp_key_S_j || $tmp_key_D_i == $tmp_key_D_j)){
+				print $out "(assert (ite (bvslt (bvadd x$i ".($f_wi).") x$j) (bvsle (bvadd x$i $xol_i) x$j)\n";
+				print $out "        (ite (and (= (bvadd x$i ".($f_wi).") x$j) $tmp_str_ij) (= (bvadd x$i ".($f_wi).") x$j)\n";
+				print $out "	    (ite (bvsgt (bvsub x$i ".($f_wj).") x$j) (bvsge (bvsub x$i $xol_j) x$j)\n";
+				print $out "	    (ite (and (= (bvsub x$i ".($f_wj).") x$j) $tmp_str_ji) (= (bvsub x$i ".($f_wj).") x$j)\n";
+				print $out "	    (= #b1 #b0))))))\n";
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("c", 0);
+			}
+			else{
+				print $out "(assert (ite (bvslt (bvadd x$i ".($f_wi).") x$j) (bvsle (bvadd x$i $xol_i) x$j)\n";
+				print $out "	    (ite (bvsgt (bvsub x$i ".($f_wj).") x$j) (bvsge (bvsub x$i $xol_j) x$j)\n";
+				print $out "	    (= #b1 #b0))))\n";
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("c", 0);
+			}
+		}
+	}
+}
+for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
+	for my $j ($lastIdxPMOS + 1 .. $numInstance - 1) {
+		if($i != $j){
+			my $tmp_key_S_i = $h_pin_id{"$inst[$i][0]_S"};
+			my $tmp_key_D_i = $h_pin_id{"$inst[$i][0]_D"};
+			my $tmp_key_S_j = $h_pin_id{"$inst[$j][0]_S"};
+			my $tmp_key_D_j = $h_pin_id{"$inst[$j][0]_D"};
+			my @tmp_finger_i = ();
+			@tmp_finger_i = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+			my @tmp_finger_j = ();
+			@tmp_finger_j = getAvailableNumFinger($inst[$j][2], $trackEachPRow);
+			
+			my $height_i = $inst[$i][2]/$tmp_finger_i[0];
+			my $height_j = $inst[$j][2]/$tmp_finger_j[0];
+
+			my $tmp_str_ij = "";
+			my $tmp_str_ji = "";
+			if($tmp_finger_i[0] % 2 == 0 && $tmp_finger_j[0] % 2 == 0){
+				$tmp_str_ij = "(= (_ bv$tmp_key_S_i ".length(sprintf("%b", $numNets_org)).") (_ bv$tmp_key_S_j ".length(sprintf("%b", $numNets_org))."))";
+				$tmp_str_ji = "(= (_ bv$tmp_key_S_i ".length(sprintf("%b", $numNets_org)).") (_ bv$tmp_key_S_j ".length(sprintf("%b", $numNets_org))."))";
+			}
+			elsif($tmp_finger_i[0] % 2 == 0 && $tmp_finger_j[0] % 2 == 1){
+				# if nf % 2 == 1, if ff = 1 nl = $tmp_key_D, nr = $tmp_key_S
+				#                 if ff = 0 nl = $tmp_key_S, nr = $tmp_key_D
+				# nri = nlj
+				if($tmp_key_S_i == $tmp_key_D_j){
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ij = "";
+					}
+					else{
+						$tmp_str_ij = "(= ff$j true)";
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ij = "(= ff$j false)";
+					}
+					else{
+						$tmp_str_ij = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ij = "(ite (= ff$j 1) (= $tmp_key_S_i $tmp_key_D_j) (= $tmp_key_S_i $tmp_key_S_j))";
+				# nli = nrj
+				if($tmp_key_S_i == $tmp_key_S_j){
+					if($tmp_key_S_i == $tmp_key_D_j){
+						$tmp_str_ji = "";
+					}
+					else{
+						$tmp_str_ji = "(= ff$j true)";
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_D_j){
+						$tmp_str_ji = "(= ff$j false)";
+					}
+					else{
+						$tmp_str_ji = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ji = "(ite (= ff$j 1) (= $tmp_key_S_i $tmp_key_S_j) (= $tmp_key_S_i $tmp_key_D_j))";
+			}
+			elsif($tmp_finger_i[0] % 2 == 1 && $tmp_finger_j[0] % 2 == 0){
+				# if nf % 2 == 1, if ff = 1 nl = $tmp_key_D, nr = $tmp_key_S
+				#                 if ff = 0 nl = $tmp_key_S, nr = $tmp_key_D
+				# nri = nlj
+				if($tmp_key_S_i == $tmp_key_S_j){
+					if($tmp_key_D_i == $tmp_key_S_j){
+						$tmp_str_ij = "";
+					}
+					else{
+						$tmp_str_ij = "(= ff$i true)";
+					}
+				}
+				else{
+					if($tmp_key_D_i == $tmp_key_S_j){
+						$tmp_str_ij = "(= ff$i false)";
+					}
+					else{
+						$tmp_str_ij = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ij = "(ite (= ff$i 1) (= $tmp_key_S_i $tmp_key_S_j) (= $tmp_key_D_i $tmp_key_S_j))";
+				# nli = nrj
+				if($tmp_key_D_i == $tmp_key_S_j){
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ji = "";
+					}
+					else{
+						$tmp_str_ji = "(= ff$i true)";
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_S_j){
+						$tmp_str_ji = "(= ff$i false)";
+					}
+					else{
+						$tmp_str_ji = "(= #b0 #b1)";
+					}
+				}
+				#$tmp_str_ji = "(ite (= ff$i 1) (= $tmp_key_D_i $tmp_key_S_j) (= $tmp_key_S_i $tmp_key_S_j))";
+			}
+			elsif($tmp_finger_i[0] % 2 == 1 && $tmp_finger_j[0] % 2 == 1){
+				# if nf % 2 == 1, if ff = 1 nl = $tmp_key_D, nr = $tmp_key_S
+				#                 if ff = 0 nl = $tmp_key_S, nr = $tmp_key_D
+				# nri = nlj
+#				$tmp_str_ij = "(ite (and (= ff$i 1) (= ff$j 1)) (= $tmp_key_S_i $tmp_key_D_j)";
+#				$tmp_str_ij = $tmp_str_ij." (ite (= ff$i 1) (= $tmp_key_S_i $tmp_key_S_j)";
+#				$tmp_str_ij = $tmp_str_ij." (ite (= ff$j 1) (= $tmp_key_D_i $tmp_key_D_j)";
+#				$tmp_str_ij = $tmp_str_ij." (= $tmp_key_D_i $tmp_key_S_j))))";
+				if($tmp_key_S_i == $tmp_key_D_j){
+					if($tmp_key_S_i == $tmp_key_S_j){
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi = 0,1, ffj = 0,1
+								$tmp_str_ij = "";
+							}
+							else{
+								## ffi,ffj!=0 at the same time
+								$tmp_str_ij = "(or (>= ff$i true) (>= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ~(ffi=0 & ffj=1)
+								$tmp_str_ij = "(or (and (= ff$i true) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## ffi = 1
+								$tmp_str_ij = "(= ff$i true)";
+							}
+						}
+					}
+					else{
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffj=1 or (ffi = 0 and ffj= 0)
+								$tmp_str_ij = "(or (and (= ff$i false) (= ff$j false)) (= ff$j true))";
+							}
+							else{
+								## ffj=1
+								$tmp_str_ij = "(= ff$j true)";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi = ffj
+								$tmp_str_ij = "(= ff$i ff$j)";
+							}
+							else{
+								## ffi=1 and ffj=1
+								$tmp_str_ij = "(and (= ff$i true) (= ff$j true))";
+							}
+						}
+					}
+				}
+				else{
+					if($tmp_key_S_i == $tmp_key_S_j){
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## (ffi=0 and ffj=1) or ffj=0
+								$tmp_str_ij = "(or (and (= ff$i false) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## (ffi=0 and ffj=1) or (ffi=1 and ffj=0)
+								$tmp_str_ij = "(or (and (= ff$i false) (= ff$j true)) (and (= ff$i true) (= ff$j false)))";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffj =0
+								$tmp_str_ij = "(= ff$j false)";
+							}
+							else{
+								## ffi=1 and ffj=0
+								$tmp_str_ij = "(and (= ff$i true) (= ff$j false))";
+							}
+						}
+					}
+					else{
+						if($tmp_key_D_i == $tmp_key_D_j){
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi=0
+								$tmp_str_ij = "(= ff$i false)";
+							}
+							else{
+								## ffi=0 and ffj=1
+								$tmp_str_ij = "(and (= ff$i false) (= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_D_i == $tmp_key_S_j){
+								## ffi=0 and ffj=0
+								$tmp_str_ij = "(and (= ff$i false) (= ff$j false))";
+							}
+							else{
+								## ffi=0 and ffj=0
+								$tmp_str_ij = "(= #b1 #b0)";
+							}
+						}
+					}
+				}
+				# nli = nrj
+#				$tmp_str_ji = "(ite (and (= ff$i 1) (= ff$j 1)) (= $tmp_key_D_i $tmp_key_S_j)";
+#				$tmp_str_ji = $tmp_str_ji." (ite (= ff$i 1) (= $tmp_key_D_i $tmp_key_D_j)";
+#				$tmp_str_ji = $tmp_str_ji." (ite (= ff$j 1) (= $tmp_key_S_i $tmp_key_S_j)";
+#				$tmp_str_ji = $tmp_str_ji." (= $tmp_key_S_i $tmp_key_D_j))))";
+				if($tmp_key_D_i == $tmp_key_S_j){
+					if($tmp_key_D_i == $tmp_key_D_j){
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi = 0,1, ffj = 0,1
+								$tmp_str_ji = "";
+							}
+							else{
+								## ffi,ffj!=0 at the same time
+								$tmp_str_ji = "(or (>= ff$i true) (>= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ~(ffi=0 & ffj=1)
+								$tmp_str_ji = "(or (and (= ff$i true) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## ffi = 1
+								$tmp_str_ji = "(= ff$i true)";
+							}
+						}
+					}
+					else{
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffj=1 or (ffi = 0 and ffj= 0)
+								$tmp_str_ji = "(or (and (= ff$i false) (= ff$j false)) (= ff$j true))";
+							}
+							else{
+								## ffj=1
+								$tmp_str_ji = "(= ff$j true)";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi = ffj
+								$tmp_str_ji = "(= ff$i ff$j)";
+							}
+							else{
+								## ffi=1 and ffj=1
+								$tmp_str_ji = "(and (= ff$i true) (= ff$j true))";
+							}
+						}
+					}
+				}
+				else{
+					if($tmp_key_D_i == $tmp_key_D_j){
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## (ffi=0 and ffj=1) or ffj=0
+								$tmp_str_ji = "(or (and (= ff$i false) (= ff$j true)) (= ff$j false))";
+							}
+							else{
+								## (ffi=0 and ffj=1) or (ffi=1 and ffj=0)
+								$tmp_str_ji = "(or (and (= ff$i false) (= ff$j true)) (and (= ff$i true) (= ff$j false)))";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffj =0
+								$tmp_str_ji = "(= ff$j false)";
+							}
+							else{
+								## ffi=1 and ffj=0
+								$tmp_str_ji = "(and (= ff$i true) (= ff$j false))";
+							}
+						}
+					}
+					else{
+						if($tmp_key_S_i == $tmp_key_S_j){
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi=0
+								$tmp_str_ji = "(= ff$i false)";
+							}
+							else{
+								## ffi=0 and ffj=1
+								$tmp_str_ji = "(and (= ff$i false) (= ff$j true))";
+							}
+						}
+						else{
+							if($tmp_key_S_i == $tmp_key_D_j){
+								## ffi=0 and ffj=0
+								$tmp_str_ji = "(and (= ff$i false) (= ff$j false))";
+							}
+							else{
+								## ffi=0 and ffj=0
+								$tmp_str_ji = "(= #b1 #b0)";
+							}
+						}
+					}
+				}
+			}
+			my $len = length(sprintf("%b", $numTrackV))+4;
+			my $len2 = length(sprintf("%b", 2*$tmp_finger_i[0]));
+			my $tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $f_wi = "(_ bv".(2*$tmp_finger_i[0])." $len)";
+			$len2 = length(sprintf("%b", 2*$tmp_finger_j[0]));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $f_wj = "(_ bv".(2*$tmp_finger_j[0])." $len)";
+			$len2 = length(sprintf("%b", $XOL_Parameter));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $xol = "(_ bv".$XOL_Parameter." $len)";
+			$len2 = length(sprintf("%b", 2*$tmp_finger_i[0] + $XOL_Parameter));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $xol_i = "(_ bv".(2*$tmp_finger_i[0] + $XOL_Parameter)." $len)";
+			$len2 = length(sprintf("%b", 2*$tmp_finger_j[0] + $XOL_Parameter));
+			$tmp_str = "";
+			if($len>1){
+				for my $i(0 .. $len-$len2-1){
+					$tmp_str.="0";
+				}
+			}
+			my $xol_j = "(_ bv".(2*$tmp_finger_j[0] + $XOL_Parameter)." $len)";
+			if(($height_i == $height_j) && ($tmp_key_S_i == $tmp_key_S_j || $tmp_key_S_i == $tmp_key_D_j || $tmp_key_D_i == $tmp_key_S_j || $tmp_key_D_i == $tmp_key_D_j)){
+				print $out "(assert (ite (bvslt (bvadd x$i ".($f_wi).") x$j) (bvsle (bvadd x$i $xol_i) x$j)\n";
+				print $out "        (ite (and (= (bvadd x$i ".($f_wi).") x$j) $tmp_str_ij) (= (bvadd x$i ".($f_wi).") x$j)\n";
+				print $out "	    (ite (bvsgt (bvsub x$i ".($f_wj).") x$j) (bvsge (bvsub x$i $xol_j) x$j)\n";
+				print $out "	    (ite (and (= (bvsub x$i ".($f_wj).") x$j) $tmp_str_ji) (= (bvsub x$i ".($f_wj).") x$j)\n";
+				print $out "	    (= #b1 #b0))))))\n";
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("c", 0);
+			}
+			else{
+				print $out "(assert (ite (bvslt (bvadd x$i ".($f_wi).") x$j) (bvsle (bvadd x$i $xol_i) x$j)\n";
+				print $out "	    (ite (bvsgt (bvsub x$i ".($f_wj).") x$j) (bvsge (bvsub x$i $xol_j) x$j)\n";
+				print $out "	    (= #b1 #b0))))\n";
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("l", 0);
+				cnt("c", 0);
+			}
+		}
+	}
+}
+print $out "\n";
+
+### Routing ###
+print "a   C. Variables for Routing\n";
+#### Metal binary variables
+#for my $udeIndex (0 .. $#udEdges) {
+#    print $out "(declare-const M_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2] Bool)\n";
+#	cnt("v", 2);
+#}
+#for my $vEdgeIndex (0 .. $#virtualEdges) {
+#    print $out "(declare-const M_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] Bool)\n";
+#	cnt("v", 2);
+#}
+#### Extensible Boundary variables
+## In Extensible Case , Metal binary variables
+#for my $leftVertex (0 .. $#leftCorners) {
+#	my $metal = (split /[a-z]/, $leftCorners[$leftVertex])[1];
+#	if ($metal % 2 == 0) {
+#		print $out "(declare-const M_LeftEnd_$leftCorners[$leftVertex] Bool)\n";
+#		cnt("v", 2);
+#	}
+#}
+#for my $rightVertex (0 .. $#rightCorners) {
+#	my $metal = (split /[a-z]/, $rightCorners[$rightVertex])[1];
+#	if ($metal % 2 == 0) {
+#		print $out "(declare-const M_$rightCorners[$rightVertex]_RightEnd Bool)\n";
+#		cnt("v", 2);
+#	}
+#}
+#for my $frontVertex (0 .. $#frontCorners) {
+#	my $metal = (split /[a-z]/, $frontCorners[$frontVertex])[1];
+#	if ($metal % 2 == 1) {
+#		print $out "(declare-const M_FrontEnd_$frontCorners[$frontVertex] Bool)\n";
+#		cnt("v", 2);
+#	}
+#}
+#for my $backVertex (0 .. $#backCorners) {
+#	my $metal = (split /[a-z]/, $backCorners[$backVertex])[1];
+#	if ($metal % 2 == 1) {
+#		print $out "(declare-const M_$backCorners[$backVertex]_BackEnd Bool)\n";
+#		cnt("v", 2);
+#	}
+#}
+#### Edge binary variables
+#for my $netIndex (0 .. $#nets) {
+#    for my $udeIndex (0 .. $#udEdges) {
+#        print $out "(declare-const N$nets[$netIndex][1]_E_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2] Bool)\n";
+#		cnt("v", 2);
+#    }
+#    ### VIRTUAL_EDGE [index] [Origin] [Destination] [Cost=0]
+#    #@net = ($netName, $netID, $N_pinNets, $source_ofNet, $numSinks, [@sinks_inNet], [@pins_inNet]);
+#    for my $vEdgeIndex (0 .. $#virtualEdges) {
+#		my $isInNet = 0;
+#        if ($virtualEdges[$vEdgeIndex][2] =~ /^pin/) { # source
+#			if($virtualEdges[$vEdgeIndex][2] eq $nets[$netIndex][3]){
+#				$isInNet = 1;
+#			}
+#			if($isInNet == 1){
+#				print $out "(declare-const N$nets[$netIndex][1]_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] Bool)\n";
+#				cnt("v", 2);
+#			}
+#			$isInNet = 0;
+#			for my $i (0 .. $nets[$netIndex][4]-1){
+#				if($virtualEdges[$vEdgeIndex][2] eq $nets[$netIndex][5][$i]){
+#					$isInNet = 1;
+#				}
+#			}
+#			if($isInNet == 1){
+#				print $out "(declare-const N$nets[$netIndex][1]_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] Bool)\n";
+#				cnt("v", 2);
+#			}
+#        }
+#    }
+#}
+#### Commodity Flow binary variables
+#for my $netIndex (0 .. $#nets) {
+#    for my $commodityIndex (0 .. $nets[$netIndex][4]-1) {
+#        for my $udEdgeIndex (0 .. $#udEdges) {
+#            print $out "(declare-const N$nets[$netIndex][1]_C$commodityIndex\_E_$udEdges[$udEdgeIndex][1]_$udEdges[$udEdgeIndex][2] Bool)\n";
+#			cnt("v", 2);
+#        }
+#        for my $vEdgeIndex (0 .. $#virtualEdges) {
+#            if ($virtualEdges[$vEdgeIndex][2] =~ /^pin/) { # source
+#				if ($virtualEdges[$vEdgeIndex][2] eq $nets[$netIndex][3]){
+#					print $out "(declare-const N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] Bool)\n";
+#					cnt("v", 2);
+#				}
+#				elsif ($virtualEdges[$vEdgeIndex][2] eq $nets[$netIndex][5][$commodityIndex]){
+#					print $out "(declare-const N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] Bool)\n";
+#					cnt("v", 2);
+#				}
+#            }
+#        }
+#    }
+#}
+#
+#### Geometric binary variables  [2019-01-11] Geometric binary variables update
+#for my $metal (1 .. $numMetalLayer) { 
+#    for my $row (0 .. $numTrackH-3) {
+#        for my $col (0 .. $numTrackV-1) {
+#            $vName = "m".$metal."r".$row."c".$col;
+#			if ($metal % 2 == 1){
+#				if($col % 2 == 1){
+#					next;
+#				}
+#				print $out "(declare-const GF_V_$vName Bool)\n";
+#				cnt("v", 6);
+#				print $out "(declare-const GB_V_$vName Bool)\n";
+#				cnt("v", 6);
+#			}
+#            elsif ($metal % 2 == 0) {
+#                print $out "(declare-const GL_V_$vName Bool)\n";
+#				cnt("v", 6);
+#                print $out "(declare-const GR_V_$vName Bool)\n";
+#				cnt("v", 6);
+#            }
+#            else {
+#                print $out "(declare-const GF_V_$vName Bool)\n";
+#				cnt("v", 6);
+#                print $out "(declare-const GB_V_$vName Bool)\n";
+#				cnt("v", 6);
+#            }
+#        }
+#    }
+#}
+#print $out "\n";
+
+print "a   D. Constraints for Routing\n";
+
+### SOURCE and SINK DEFINITION per NET per COMMODITY and per VERTEX (including supernodes, i.e., pins)
+print "a     10. Variable conditions, e.g., bound and binary, ";
+### Preventing from routing Source/Drain Node using M1 Layer. Only Gate Node can use M1 between PMOS/NMOS Region
+### UNDIRECTED_EDGE [index] [Term1] [Term2] [Cost]
+#";Source/Drain Node between PMOS/NMOS region can not connect using M1 Layer.\n\n"; 
+# Mark: This need to be modified as conditional constraints for shared and split structure. (In CFET, we use M1 as LI.)
+#for my $udeIndex (0 .. $#udEdges) {
+#    my $fromCol = (split /[a-z]/, $udEdges[$udeIndex][1])[3]; # 1:metal 2:row 3:col
+#    my $toCol   = (split /[a-z]/, $udEdges[$udeIndex][2])[3];
+#    my $fromRow = (split /[a-z]/, $udEdges[$udeIndex][1])[2]; # 1:metal 2:row 3:col
+#    my $toRow   = (split /[a-z]/, $udEdges[$udeIndex][2])[2];
+#    my $fromMetal = (split /[a-z]/, $udEdges[$udeIndex][1])[1]; # 1:metal 2:row 3:col
+#    my $toMetal = (split /[a-z]/, $udEdges[$udeIndex][2])[1];
+#		if($fromCol % 2 == 1 || $toCol %2 == 1){
+#			if($fromMetal == 1 && $toMetal == 1){
+#				print $out "(assert (= M_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2] false))\n";
+#				$h_assign{"M_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2]"} = 0;
+#			}
+#		}
+#}
+#for my $netIndex (0 .. $#nets) {
+#    for my $udeIndex (0 .. $#udEdges) {
+#		my $fromCol = (split /[a-z]/, $udEdges[$udeIndex][1])[3]; # 1:metal 2:row 3:col
+#		my $toCol   = (split /[a-z]/, $udEdges[$udeIndex][2])[3];
+#		my $fromRow = (split /[a-z]/, $udEdges[$udeIndex][1])[2]; # 1:metal 2:row 3:col
+#		my $toRow   = (split /[a-z]/, $udEdges[$udeIndex][2])[2];
+#		my $fromMetal = (split /[a-z]/, $udEdges[$udeIndex][1])[1]; # 1:metal 2:row 3:col
+#		my $toMetal = (split /[a-z]/, $udEdges[$udeIndex][2])[1];
+#			if($fromCol % 2 == 1 || $toCol %2 == 1){
+#				if($fromMetal == 1 && $toMetal == 1){
+#					print $out "(assert (= N$nets[$netIndex][1]\_";
+#					print $out "E_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2] false))\n";
+#					$h_assign{"N$nets[$netIndex][1]\_E_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2]"} = 0;
+#				}
+#			}
+#    }
+#}
+#for my $netIndex (0 .. $#nets) {
+#    for my $commodityIndex (0 .. $nets[$netIndex][4]-1) {
+#        for my $udeIndex (0 .. $#udEdges) {
+#			my $fromCol = (split /[a-z]/, $udEdges[$udeIndex][1])[3]; # 1:metal 2:row 3:col
+#			my $toCol   = (split /[a-z]/, $udEdges[$udeIndex][2])[3];
+#			my $fromRow = (split /[a-z]/, $udEdges[$udeIndex][1])[2]; # 1:metal 2:row 3:col
+#			my $toRow   = (split /[a-z]/, $udEdges[$udeIndex][2])[2];
+#			my $fromMetal = (split /[a-z]/, $udEdges[$udeIndex][1])[1]; # 1:metal 2:row 3:col
+#			my $toMetal = (split /[a-z]/, $udEdges[$udeIndex][2])[1];
+#				if($fromCol % 2 == 1 || $toCol %2 == 1){
+#					if($fromMetal == 1 && $toMetal == 1){
+##						print $out "(assert (= N$nets[$netIndex][1]\_";
+##						print $out "C$commodityIndex\_";
+##						print $out "E_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2] false))\n";
+#						$h_assign{"N$nets[$netIndex][1]\_C$commodityIndex\_E_$udEdges[$udeIndex][1]_$udEdges[$udeIndex][2]"} = 0;
+#					}
+#				}
+#            }
+#    }
+#}
+my %NMOS_forbidden = {};
+my %PMOS_forbidden = {};
+# YW data structure: $virtualEdges
+#		[
+#           [vEindex],
+#           [vertex],
+#           [pinSON/SIN],
+#           [edge_COST]
+#       ];
+if ($stack_struct_flag eq "PN") {
+	# Mark: Forbidden access NMOS on the second and third track
+	for my $vEdgeIndex (0 .. $#virtualEdges) {
+		# print("virtualEdges: $virtualEdges[$vEdgeIndex][1]\n");
+		# Extract Col and Row information from vertex name
+		my $toCol   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3];
+		# print("toCol ".$toCol."\n");
+		my $toRow   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[2];
+		# print("toRow ".$toRow."\n");
+		my $len = length(sprintf("%b", $numTrackV))+4;
+
+		my $instIdx = $h_inst_idx{$pins[$h_pinId_idx{$virtualEdges[$vEdgeIndex][2]}][6]};
+		if($instIdx > $lastIdxPMOS && ($toRow != 0 && $toRow != 3 ) && ($toCol > 0 && $toCol <= $numTrackV-2) && ($virtualEdges[$vEdgeIndex][2] ne "pinSON")) {
+			#print "Forbidden M_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n";
+			my $tmp_name = "M_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]";
+			print("tmp_name, $tmp_name\n");
+			if (! exists($NMOS_forbidden{$tmp_name}) ) {
+				$NMOS_forbidden{$tmp_name} = 0;
+			}
+		}	
+	}
+} else {
+	# stack_struct_flag == "NP"
+	# Mark: Forbidden access PMOS on the second and third track
+	for my $vEdgeIndex (0 .. $#virtualEdges) {
+		
+		my $toCol   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3];
+		my $toRow   = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[2];
+		my $len = length(sprintf("%b", $numTrackV))+4;
+
+		my $instIdx = $h_inst_idx{$pins[$h_pinId_idx{$virtualEdges[$vEdgeIndex][2]}][6]};
+		if($instIdx <= $lastIdxPMOS && ($toRow != 0 && $toRow != 3 ) && ($toCol > 0 && $toCol <= $numTrackV-2) && ($virtualEdges[$vEdgeIndex][2] ne "pinSON")) {
+			#print "Forbidden M_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n";
+			my $tmp_name = "M_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]";
+			print("tmp_name, $tmp_name\n");
+			if (! exists($PMOS_forbidden{$tmp_name}) ) {
+				$PMOS_forbidden{$tmp_name} = 0;
+			}
+		}	
+	}
+}
