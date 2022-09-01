@@ -1891,7 +1891,7 @@ $metal = $numMetalLayer;
 # [METAL] => [Vertices Name ordered by metal direction]
 # Example: Odd layer 		=> 	[m3r[1-10]c1]...
 # Example: Even layer => 	[m4r1c[1-9]]...
-my @temp_vertices = @{$map_metal_to_vertices{"$metal"}};
+@temp_vertices = @{$map_metal_to_vertices{"$metal"}};
 
 foreach (@temp_vertices) {
 	# regex extract vertex information
@@ -2629,6 +2629,7 @@ for my $i (0 .. $numInstance - 1) {
 			$tmp_str.="0";
 		}
 	}
+
 	my $s_first = "#b".$tmp_str."0";
 	$len2 = length(sprintf("%b", $numPTrackV - 2*$tmp_finger[0] + 1));
 	my $tmp_str = "";
@@ -2942,6 +2943,7 @@ my %h_g_inst = ();
 #	}
 #}
 # Mark: Only m<=3 is expected? We might have larger width
+# PMOS
 for my $i (0 .. $lastIdxPMOS) {
 	my @tmp_finger = ();
 	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
@@ -2961,9 +2963,12 @@ for my $i (0 .. $lastIdxPMOS) {
 		$h_g_inst{$i} = 3;
 	}
 }
+
+# NMOS
 for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
 	my @tmp_finger = ();
 	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	
 	if($inst[$i][2]/$tmp_finger[0] == 1){
 		push(@g_n_h1, $i);
 		$w_n_h1+=2*$tmp_finger[0];
@@ -4059,3 +4064,101 @@ if ($stack_struct_flag eq "PN") {
 		}	
 	}
 }
+
+### Extensible Boundary variables
+# In Extensible Case , Metal binary variables
+if ($BoundaryCondition == 1){
+}
+else{
+#$str.="; There are no adjacent vertices in L, R, F, B directions.\n\n";
+	for my $leftVertex (0 .. $#leftCorners) {
+		my $metal = (split /[a-z]/, $leftCorners[$leftVertex])[1];
+		# why only even metal
+		if ($metal % 2 == 0) { # only on even metal 2, 4, 6...
+#				print $out "(assert (= M_LeftEnd_$leftCorners[$leftVertex] false))\n";
+			$h_assign{"M_LeftEnd_$leftCorners[$leftVertex]"} = 0;
+		}
+	}
+	for my $rightVertex (0 .. $#rightCorners) {
+		my $metal = (split /[a-z]/, $rightCorners[$rightVertex])[1];
+		if ($metal % 2 == 0) {  # only on even metal 2, 4, 6...
+#				print $out "(assert (= M_$rightCorners[$rightVertex]_RightEnd false))\n";
+			$h_assign{"M_$rightCorners[$rightVertex]_RightEnd"} = 0;
+		}
+	}
+	for my $frontVertex (0 .. $#frontCorners) {
+		my $metal = (split /[a-z]/, $frontCorners[$frontVertex])[1];
+		if ($metal % 2 == 1) {	# only on even metal 2, 4, 6...
+#				print $out "(assert (= M_FrontEnd_$frontCorners[$frontVertex] false))\n";
+			$h_assign{"M_FrontEnd_$frontCorners[$frontVertex]"} = 0;
+		}
+	}
+	for my $backVertex (0 .. $#backCorners) {
+		my $metal = (split /[a-z]/, $backCorners[$backVertex])[1];
+		if ($metal % 2 == 1) {	# only on even metal 2, 4, 6...
+#				print $out "(assert (= M_$backCorners[$backVertex]_BackEnd false))\n";
+			$h_assign{"M_$backCorners[$backVertex]_BackEnd"} = 0;
+		}
+	}
+}
+
+print(Dumper \%h_assign);
+
+if($Local_Parameter == 1){
+	$str.=";Localization.\n\n";
+	$str.=";Localization for Adjacent Pins in the same multifinger TRs.\n\n";
+	for my $netIndex (0 .. $#nets) {
+		for my $commodityIndex (0 .. $nets[$netIndex][4]-1) {
+			my $inst_pin_s = $h_inst_idx{$pins[$h_pinId_idx{$nets[$netIndex][3]}][6]};
+			my $inst_pin_t = $h_inst_idx{$pins[$h_pinId_idx{$nets[$netIndex][5][$commodityIndex]}][6]};
+			my $pidx_s = $nets[$netIndex][3];
+			my $pidx_t = $nets[$netIndex][5][$commodityIndex];
+			my @finger_s = getAvailableNumFinger($inst[$inst_pin_s][2], $trackEachPRow);
+			my @finger_t = getAvailableNumFinger($inst[$inst_pin_t][2], $trackEachPRow);
+			my $w_s = $finger_s[0]*2;
+			my $w_t = $finger_t[0]*2;
+			# length of encoding bits should be max numTrackV across all layers
+			my $len = length(sprintf("%b", $max_numTrackV))+4;
+			$pidx_s =~ s/pin\S+_(\d+)/\1/g;
+			$pidx_t =~ s/pin\S+_(\d+)/\1/g;
+			my %h_edge = (); # will always be empty
+			if($nets[$netIndex][5][$commodityIndex] ne $keySON){
+				if($inst_pin_s == $inst_pin_t){
+					# only from metal 3 to 4
+
+					# iterate only metal 4
+					for my $metal (3 .. $numMetalLayer) {
+						@temp_vertices = @{$map_metal_to_vertices{"$metal"}};
+						# NOTE: by definition, metal will start with 3, end with 4 and never be 1
+						# if metal > 1 and odd metal and odd col
+						foreach (@temp_vertices) {
+							# regex extract vertex information
+							my $vName = $_;
+
+							my ($metal, $row, $col) = ($vName =~ m/m(\d+)r(\d+)c(\d+)/);
+							if($metal>1 && $metal % 2 == 1 && $col % 2 == 1){
+								next;
+							}
+
+							for my $i (0 .. $#{$edge_in{$vName}}){ # incoming
+								if(!exists($h_edge{"$udEdges[$edge_in{$vName}[$i]][1]_$vName"})){
+									$h_assign{"N$nets[$netIndex][1]\_C$commodityIndex\_E_$udEdges[$edge_in{$vName}[$i]][1]_$vName"} = 0;
+								}
+							}
+
+							for my $i (0 .. $#{$edge_out{$vName}}){ # incoming
+								if(!exists($h_edge{"$vName\_$udEdges[$edge_in{$vName}[$i]][1]"})){
+									$h_assign{"N$nets[$netIndex][1]\_C$commodityIndex\_E_$vName\_$udEdges[$edge_out{$vName}[$i]][2]"} = 0;
+								}
+
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+print("Localization:\n");
+print(Dumper \%h_assign);
