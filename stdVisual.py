@@ -41,7 +41,7 @@ class StdVisual:
         self.numTrack = 0
         self.__readConv()
 
-        self.cellWidth = self.numCPP * self.cppWidth
+        self.cellWidth = self.numCPP * self.cppWidth * 2 - self.cppWidth * 2
         self.realTrack = self.numTrack # BrpMode None
         self.cellHeight = self.realTrack * self.metalPitch
 
