@@ -1,5 +1,5 @@
 # exclude everything except directory
-ConvtoLef/output/*
+ConvtoLef/output
 pinLayouts_cfet_v2.1/*
 inputsSMT_cfet/*
 CFET/PNR_4.5T_Extend2/RUN_cfet/*
@@ -7,3 +7,6 @@ CFET/PNR_4.5T_Extend2/pinLayouts_cfet/*
 CFET/PNR_4.5T_Extend/RUN_cfet/*
 CFET/PNR_4.5T_Extend/pinLayouts_cfet/*
 CFET/PNR_4.5T_Extend/list_cfet_all
+CFET/PNR_4.5T_Extend2/list_cfet_all
+CFET/PNR_4.5T_Extend2/solutionsSMT_cfet/*
+out

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 export workdir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-export workdir="$workdir/CFET/PNR_4.5T_Extend"
-# export workdir="$workdir/CFET/PNR_4.5T_Extend2"
+# export workdir="$workdir/CFET/PNR_4.5T_Extend"
+export workdir="$workdir/CFET/PNR_4.5T_Extend2"
 
 # Step 1
 echo "********** Generating Testcase **********"
@@ -37,13 +37,13 @@ done
 
 # Step 3
 echo "********** Generating Z3 Solution **********"
-echo "run_smt_cfet_forLef2.sh list_cfet_all"
+echo "run_smt_cfet_forLef3.sh list_cfet_all"
 cd $workdir
-./run_smt_cfet_forLef2.sh list_cfet_all
+./run_smt_cfet_forLef3.sh list_cfet_all
 cd -
 
 # Step 4
 echo "********** Generating LEF file **********"
 echo "python generate.py [$metalPitch] [$cppWidth] [$siteName] [$mpoMode]"
 cd ./ConvtoLef
-python3 generate_cfet_v4.0.py 48 84 coreSite 2 "$workdir/solutionsSMT_cfet/" "./output"
+python3 generate_cfet_v6.0.py 48 84 coreSite 2 "$workdir/solutionsSMT_cfet/" "./output"
