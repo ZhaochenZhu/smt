@@ -717,7 +717,8 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
   lefStr += obsInfo.getLefStr(techInfo)
   lefStr += "END %s\n\n" % (cellName)  
 
-  return lefLayerStr + lefStr
+  # return lefLayerStr + lefStr
+  return lefStr
 
 def GetMpoFlag(inpStr):
   if inpStr == "2":
