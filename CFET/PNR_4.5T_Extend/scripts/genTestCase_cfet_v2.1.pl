@@ -120,7 +120,7 @@ my $sizePMOS = 0;
 my $numPTrackH = 4; # 2 nanosheets per FET
 my $numTrackH = 6; # 4 routing tracks; 2 power/ground tracks
 #my $numClip = 2; # PMOS and NMOS region in FinFET
-my $numClip = 2; # PMOS and NMOS region for CFET
+my $numClip = 1; # PMOS and NMOS region for CFET
 my $subckt_flag = 0;
 ### Read Inputfile and Build Data Structure
 open (my $in, "$infile");
