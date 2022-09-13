@@ -587,7 +587,7 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     Min_PinCost = 100
     Max_PinCost = 0
     Num_Pins = 0
-    Num_PinSpace = 0num
+    Num_PinSpace = 0
     for extpin in extpins:
         pinNetId.add(extpin.netID)
         via0Arr = [ via for via in vias if via.netID == extpin.netID and via.fromMetal == 2 ]
