@@ -1,27 +1,23 @@
 #!/bin/bash
 solverPath=""
-#inputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T_Extend/inputsSMT_cfet" 	# yuw
-inputPath="../../inputsSMT_cfet"
+inputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T_Extend2/inputsSMT_cfet"
 #inputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T/inputsSMT_cfet_exp1_mpo2_wopinfix"
-#outputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T_Extend/RUN_cfet"		# yuw
-outputPath="./RUN_cfet"
+outputPath="/home/marh/SPR/VLSIJ/CFET/PNR_4.5T_Extend2/RUN_cfet"
 #LefPath="/home/marh/ConvtoLef/input_cfet_exp3_wopinfix_mpo3"
 #LefPath="./solutionsSMT_cfet_exp3_loc0_wopinfix_offtrack8"
 #LefPath="./solutionsSMT_cfet_exp1_loc0_wopinfix_offtrack8"
 #LefPath="./solutionsSMT_cfet_exp1_loc1_woM2min_offtrack8_0"
 LefPath="./solutionsSMT_cfet"
 timeout=864000
-nThreads="4"
+nThreads="12"
 #RandomSeed="17" # DFF
 #RandomSeed="4" 
-#RandomSeed="37"
+#RandomSeed="6"
+#RandomSeed="3"
 RandomSeed="0"
 maxmemory="240000"
-# solver=(
-# 		"z3 -v:1 -st sat.threads=$nThreads sat.random_seed=$RandomSeed"
-# 		)
 solver=(
-		"z3 -v:1 -st parallel.enable=true sat.random_seed=$RandomSeed"
+		"z3 -v:1 -st sat.threads=$nThreads sat.random_seed=$RandomSeed"
 		)
 ceil() {
 	echo "define ceil (x) {if (x<0) {return x/1}\
@@ -60,7 +56,6 @@ else
 	fi
 fi
 var_con=""
-# TODO: can we modify to enable muti thread computing
 for s in "${solver[@]}"
 do
 	arrSolver=( $s )

@@ -117,6 +117,8 @@ while (<$in>) {
 close($in);
 $numTrackH = $numRoutingClip * $numTrackHPerClip - 2;
 
+print("numTrackH: ", $numTrackH, "\n");
+
 ### Read Inputfile and Build Data Structure
 open (my $in, "./$infile");
 while (<$in>) {

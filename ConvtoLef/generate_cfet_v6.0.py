@@ -3,7 +3,6 @@ import sys
 import os.path
 
 from enum import Enum
-# LEF ref: http://coriolis.lip6.fr/doc/lefdef/lefdefref/OptimizingLEFTechnology.html
 
 Cell_metrics_map = {}
 
@@ -20,6 +19,7 @@ class Instance:
     def dump(self):
         print("Instance idx: %d, (%d, %d), finger: %d, isfilp: %d, totalWidth: %d, unitWidth: %d" \
             % (self.idx, self.lx, self.ly, self.numFinger, self.isFlip, self.totalWidth, self.unitWidth))
+
 
 class Metal:
     def __init__(self, layer, fromRow, fromCol, toRow, toCol, netID):
@@ -55,21 +55,6 @@ class Metal:
             techInfo.getUx(self.toCol, self.layer), techInfo.getUy(self.toRow))
         return retStr
 
-    # TODO parse layer orientation
-    def getLayerOrient(self):
-        # Odd Layers: Vertical Direction   Even Layers: Horizontal Direction
-        if self.layer % 2 == 0:
-            return "HORIZONTAL"
-        else:
-            return "VERTICAL"
-
-    # TODO parse metal layer information
-    def getLefLayerStr(self, techInfo):
-        resStr = ""
-        resStr += "LAYER metal%d\n  TYPE ROUTING ;\n  WIDTH %.3f ;\n  SPACING %.3f ;\n  PITCH %.3f ;\n  DIRECTION %s ;\n\nEND metal%d\n" \
-          % (self.layer, techInfo.getWidth()/1000, techInfo.getSpacing()/1000, techInfo.getPitch()/1000, self.getLayerOrient(), self.layer)
-        return resStr
-
 class Via:
     def __init__(self, fromMetal, toMetal, x, y, netID):
         self.fromMetal = int(fromMetal)
@@ -101,27 +86,23 @@ class ExtPin:
     def dump(self):
         print("ExtPin layer: %d, (%d, %d) - ID: %d: %s, isInput: %d" % (self.layer, self.x, self.y, self.netID, self.pinName, self.isInput))
 
+
 class BprMode(Enum):
-    """
-    Power Rail Location
-    """
     NONE = 0
     METAL1 = 1
     METAL2 = 2
     BPR = 3
 
 class MpoMode(Enum):
-    """
-    Minimum Pin Openining: minimum I/O acess points
-    """
     NONE = 0
     TWO = 1
     THREE = 2
     MAX = 3
 
 class TechInfo:
-    def __init__(self, numCpp, numTrack, metalPitch, cppWidth, siteName, bprFlag, mpoFlag):
+    def __init__(self, numCpp, cellRow, numTrack, metalPitch, cppWidth, siteName, bprFlag, mpoFlag, y_flip, x_flip, enLI, enM0):
         self.numCpp = int(numCpp)
+        self.cellRow = int(cellRow)
         self.numTrack = int(numTrack)
         self.metalPitch = int(metalPitch)
         self.cppWidth = int(cppWidth)
@@ -130,86 +111,101 @@ class TechInfo:
         self.realTrack = 0
 
         self.bprFlag = bprFlag 
-        self.mpoFlag = mpoFlag 
-
+        self.mpoFlag = mpoFlag
+        self.y_flip = y_flip
+        self.x_flip = x_flip
+        self.enLI = enLI
+        self.enM0 = enM0
         self.update(False)
 
     def update(self, isMaxCellWidthUpdate):
-        print("*** this is the numTrack ****", self.numTrack)
-        # metal width = metal pitch / 2
         self.metalWidth = int(self.metalPitch/2)
-        # Buried Power Rail
         if self.bprFlag == BprMode.METAL1 or self.bprFlag == BprMode.METAL2:
             self.realTrack = self.numTrack + 2
         elif self.bprFlag == BprMode.BPR:
             self.realTrack = self.numTrack + 0.5
 
         self.cellWidth = self.numCpp * self.cppWidth
-        self.cellHeight = (self.realTrack) * self.metalPitch
+        self.cellHeight = (self.realTrack) * self.metalPitch*self.cellRow
         self.numFin = self.numTrack/2
 
         # only updates maxCellWidth when isMaxCellWidthUpdate is true
-        # this is not used
         if isMaxCellWidthUpdate:
             self.maxCellWidth = max(self.maxCellWidth, self.cellWidth)
 
     def dump(self):
-        print("numTrack: %d, realTrack: %d, metalPitch: %d nm, cppWidth: %d nm, siteName: %s" %(self.numTrack, self.realTrack, self.metalPitch, self.cppWidth, self.siteName))
+        print("cellHeight %f, cellRow %d, numTrack: %d, realTrack: %f, metalPitch: %d nm, cppWidth: %d nm, siteName: %s" %(self.cellHeight, self.cellRow, self.numTrack, self.realTrack, self.metalPitch, self.cppWidth, self.siteName))
 
     def getLx(self, val, layer):
         if layer == 3:
             return (self.cppWidth/2 \
               + val * (self.cppWidth/2) - self.cppWidth/4)/1000.0
-        elif layer == 4:
+        elif layer <= 1:
             return (self.cppWidth/2 \
-              + val * (self.cppWidth/2) - self.metalWidth/2)/1000.0 - 0.009
+              + val * (self.cppWidth/2) - self.cppWidth/8)/1000.0
+        elif layer == 4 or layer == 2:
+            if val%2 == 0:
+                return (self.cppWidth/2 \
+                  + val * (self.cppWidth/2) - self.metalWidth/2)/1000.0 - 0.009
+            else:
+                return (self.cppWidth/2 \
+                   + val * (self.cppWidth/2) - self.metalWidth/2)/1000.0
         else:
             return (self.cppWidth/2 \
               + val * (self.cppWidth/2) - self.metalWidth/2)/1000.0
 
     # BPRMODE with METAL1 / METAL2 should shift coordinates by +metalPitch/2.0
+    # METAL1 and METAL2 mode is not correct
     def getLy(self, val):
         if self.bprFlag == BprMode.BPR:
-            offset = 3*self.metalPitch/4
+            offset = (3*self.metalPitch/4)*(int(val/self.numTrack)+1) \
+                - (self.metalPitch/4)*int(val/self.numTrack)
         if self.bprFlag == BprMode.METAL1 or self.bprFlag == BprMode.METAL2:
-            offset = 3*self.metalPitch/2
+            print("Error: Not support METAL1 and METAL2 Power Ground mode!\n")
+            os.sys.exit(1)
+            #offset = (3*self.metalPitch/2)*(int(val/self.numTrack)+1)
         calVal = (offset \
           + val * self.metalPitch - self.metalWidth/2)/1000.0
+        if self.y_flip == 1:
+            calVal = abs(calVal - self.cellHeight/1000)
 
         #if self.bprFlag == BprMode.METAL1 or self.bprFlag == BprMode.METAL2:
         #  calVal += (self.metalPitch/2.0)/1000.0
 
         return calVal
 
-    # TODO get Metal info
-    def getPitch(self):
-        return self.metalPitch
-
-    def getWidth(self):
-        return self.metalWidth
-
-    def getSpacing(self):
-        return self.metalPitch - self.metalWidth
-
     def getUx(self, val, layer):
         if layer == 3:
             return (self.cppWidth/2 \
               + val * (self.cppWidth/2) + self.cppWidth/4)/1000.0
-        elif layer == 4:
+        elif layer <= 1:
             return (self.cppWidth/2 \
-              + val * (self.cppWidth/2) + self.metalWidth/2)/1000.0 + 0.009
+              + val * (self.cppWidth/2) + self.cppWidth/8)/1000.0
+        elif layer == 4 or layer == 2:
+            if val%2 == 0:
+                return (self.cppWidth/2 \
+                   + val * (self.cppWidth/2) + self.metalWidth/2)/1000.0 + 0.009
+            else:
+                return (self.cppWidth/2 \
+                   + val * (self.cppWidth/2) + self.metalWidth/2)/1000.0
         else:
             return (self.cppWidth/2 \
               + val * (self.cppWidth/2) + self.metalWidth/2)/1000.0
 
     # BPRMODE with METAL1 / METAL2 should shift coordinates by +metalPitch/2.0
+    # METAL1 and METAL2 mode is not correct
     def getUy(self, val):
         if self.bprFlag == BprMode.BPR:
-            offset = 3*self.metalPitch/4
+            offset = (3*self.metalPitch/4)*(int(val/self.numTrack)+1) \
+                - (self.metalPitch/4)*int(val/self.numTrack)
         if self.bprFlag == BprMode.METAL1 or self.bprFlag == BprMode.METAL2:
-            offset = 3*self.metalPitch/2
+            print("Error: Not support METAL1 and METAL2 Power Ground mode!\n")
+            os.sys.exit(1)
+            #offset = (3*self.metalPitch/2)*(int(val/self.numTrack)+1)
         calVal = (offset \
           + val * self.metalPitch + self.metalWidth/2)/1000.0
+        if self.y_flip == 1:
+            calVal = abs(calVal - self.cellHeight/1000)
 
         #if self.bprFlag == BprMode.METAL1 or self.bprFlag == BprMode.METAL2:
         #  calVal += (self.metalPitch/2.0)/1000.0
@@ -248,7 +244,8 @@ class TechInfo:
     def getLibraryName(self):
         return "%dT_%dF_%dCPP_%dMP_%s_%s_%s" \
             % (self.realTrack, self.numFin, self.cppWidth, self.metalPitch, \
-            self.getMpoStr(), self.getDesignRuleStr(), self.getBprStr())
+            self.getMpoStr(), self.getDesignRuleStr(), self.getBprStr()) 
+
 
 class PinInfo:
     def __init__(self, name, netID, via0s, metal1s, via1s, metal2s, isInput, PinMpoCnt):
@@ -297,7 +294,11 @@ class PinInfo:
         return retStr
 
 class ObsInfo:
-    def __init__(self, via0s, metal1s, via1s, metal2s):
+    def __init__(self, enLI, enM0, localconnects, metal0s, via0s, metal1s, via1s, metal2s):
+        self.enLI = enLI
+        self.enM0 = enM0
+        self.localconnects = localconnects
+        self.metal0s = metal0s
         self.via0s = via0s
         self.metal1s = metal1s
         self.via1s = via1s
@@ -305,6 +306,12 @@ class ObsInfo:
 
     def dump(self):
         print("ObsInfo:")
+        if (self.enLI == 1):
+            for localconnect in self.localconnects:
+                localconnect.dump()
+        if (self.enM0 == 1):
+            for metal0 in self.metal0s:
+                metal0.dump()
         for via0 in self.via0s:
             via0.dump()
         for metal1 in self.metal1s:
@@ -316,11 +323,20 @@ class ObsInfo:
         print("")
 
     def getLefStr(self, techInfo):
-        if len(self.via1s) + len(self.metal1s) + len(self.metal2s) == 0:
+        if (len(self.via1s) + len(self.metal1s) + len(self.metal2s) == 0) and self.enLI == 0 and self.enM0 == 0:
             return ""
 
         retStr = ""
         retStr += "  OBS\n"
+        if (self.enLI == 1):
+                # Put the obstacles to M1
+            retStr += "      LAYER V0 ;\n" if len(self.localconnects) >= 1 else ""
+            for localconnect in self.localconnects:
+                retStr += localconnect.getLefStr(techInfo)
+        if (self.enM0 == 1):
+            retStr += "      LAYER M0 ;\n" if len(self.metal0s) >= 1 else ""
+            for metal0 in self.metal0s:
+                retStr += metal0.getLefStr(techInfo)
         retStr += "      LAYER V1 ;\n" if len(self.via1s) >= 1 else ""
         for via1 in self.via1s:
             retStr += via1.getLefStr(techInfo)
@@ -333,15 +349,9 @@ class ObsInfo:
         retStr += "  END\n"
         return retStr
 
+
+
 def GetVddVssPinLefStr(techInfo):
-    """_summary_
-
-    Args:
-        techInfo (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """  
     if techInfo.bprFlag == BprMode.NONE:
         return "" 
 
@@ -369,57 +379,68 @@ def GetVddVssPinLefStr(techInfo):
         #rectWidth = techInfo.metalWidth/2.0
         rectWidth = techInfo.metalWidth
 
-    vddRectStr = "        RECT %.3f %.3f %.3f %.3f ;\n" \
-        % (0.0, (techInfo.cellHeight - rectWidth) / 1000.0, \
-        techInfo.cellWidth / 1000.0, \
-        (techInfo.cellHeight + rectWidth) /1000.0)
+    # Vdd section
+    lefStr += vddPrefix
+    for row in range (0, techInfo.cellRow):
+        cell_top = techInfo.cellHeight - (techInfo.realTrack * techInfo.metalPitch)*row
+        cell_bot = cell_top - (techInfo.realTrack * techInfo.metalPitch)
+        if (row%2 == 0):
+            vdd_central = cell_top
+        elif (row == techInfo.cellRow-1):
+            vdd_central = cell_bot
+        else:
+            continue
+        if techInfo.y_flip == 1:
+            vdd_central = abs(vdd_central - techInfo.cellHeight)
+        vddRectStr = "        RECT %.3f %.3f %.3f %.3f ;\n" \
+            % (0.0, (vdd_central - rectWidth) / 1000.0, \
+            techInfo.cellWidth / 1000.0, \
+            (vdd_central + rectWidth) /1000.0)
+        # METAL1 and BPR have M1
+        if techInfo.bprFlag == BprMode.METAL1 or techInfo.bprFlag == BprMode.BPR:
+            lefStr += "      LAYER M0 ;\n"
+            lefStr += vddRectStr
+        # METAL2 have M2
+        elif techInfo.bprFlag == BprMode.METAL2:
+            lefStr += "      LAYER M1 ;\n"
+            lefStr += vddRectStr
+            lefStr += "      LAYER M2 ;\n"
+            lefStr += vddRectStr
+    lefStr += "    END\n"
+    lefStr += "  END VDD\n"
 
-    vssRectStr = "        RECT %.3f %.3f %.3f %.3f ;\n"\
-        % (0.0, (-rectWidth) / 1000.0,\
-        techInfo.cellWidth / 1000.0, 
-        (rectWidth) / 1000.0)
+    # Vss section
+    lefStr += vssPrefix
+    for row in range (0, techInfo.cellRow):
+        cell_top = techInfo.cellHeight - (techInfo.realTrack * techInfo.metalPitch)*row
+        cell_bot = cell_top - (techInfo.realTrack * techInfo.metalPitch)
+        if (row%2 == 0):
+            vss_central = cell_bot
+        else:
+            continue
+        if techInfo.y_flip == 1:
+            vss_central = abs(vss_central - techInfo.cellHeight)
+        vssRectStr = "        RECT %.3f %.3f %.3f %.3f ;\n"\
+            % (0.0, (vss_central - rectWidth) / 1000.0,\
+            techInfo.cellWidth / 1000.0, 
+            (vss_central + rectWidth) / 1000.0)
+        # METAL1 and BPR have M1
+        if techInfo.bprFlag == BprMode.METAL1 or techInfo.bprFlag == BprMode.BPR:
+            lefStr += "      LAYER M0 ;\n"
+            lefStr += vssRectStr
+        # METAL2 have M2
+        elif techInfo.bprFlag == BprMode.METAL2:
+            lefStr += "      LAYER M1 ;\n"
+            lefStr += vssRectStr
+            lefStr += "      LAYER M2 ;\n"
+            lefStr += vssRectStr
+    lefStr += "    END\n"
+    lefStr += "  END VSS\n"
 
-    # METAL1 and BPR have M1
-    if techInfo.bprFlag == BprMode.METAL1 or techInfo.bprFlag == BprMode.BPR:
-        lefStr += vddPrefix
-        lefStr += "      LAYER M0 ;\n"
-        lefStr += vddRectStr
-        lefStr += "    END\n"
-        lefStr += "  END VDD\n"
-        lefStr += vssPrefix
-        lefStr += "      LAYER M0 ;\n"
-        lefStr += vssRectStr
-        lefStr += "    END\n"
-        lefStr += "  END VSS\n"
-    # METAL2 have M2
-    elif techInfo.bprFlag == BprMode.METAL2:
-        lefStr += vddPrefix
-        lefStr += "      LAYER M1 ;\n"
-        lefStr += vddRectStr
-        lefStr += "      LAYER M2 ;\n"
-        lefStr += vddRectStr
-        lefStr += "    END\n"
-        lefStr += "  END VDD\n"
-        lefStr += vssPrefix
-        lefStr += "      LAYER M1 ;\n"
-        lefStr += vssRectStr
-        lefStr += "      LAYER M2 ;\n"
-        lefStr += vssRectStr
-        lefStr += "    END\n"
-        lefStr += "  END VSS\n"
     return lefStr
 
+
 def GenerateLef(inputFileList, outputDir, techInfo):
-    """_summary_
-
-    Args:
-        inputFileList (_type_): _description_
-        outputDir (_type_): _description_
-        techInfo (_type_): _description_
-
-    Dependency:
-        GetMacroLefStr()
-    """  
     ########## Original LEF gen
     lefStr = "VERSION 5.8 ;\n"
     lefStr += 'BUSBITCHARS "[]" ;\n'
@@ -438,7 +459,7 @@ def GenerateLef(inputFileList, outputDir, techInfo):
     lefStr += "SITE "+techInfo.siteName+"\n"
     lefStr += "\tCLASS CORE ;\n"
     lefStr += "\tSYMMETRY X Y R90 ;\n"
-    lefStr += "\tSIZE "+str(int(techInfo.cppWidth)/1000.0)+" BY "+str(int(techInfo.cellHeight)/1000.0)+" ;\n"
+    lefStr += "\tSIZE "+str(int(techInfo.cppWidth)/1000.0)+" BY "+str(int(techInfo.realTrack*techInfo.metalPitch)/1000.0)+" ;\n"
     lefStr += "END "+techInfo.siteName+"\n\n"
 
     lefStr += "END LIBRARY\n"
@@ -475,86 +496,41 @@ def GenerateLef(inputFileList, outputDir, techInfo):
     f.close()
 
 def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth): 
-    """_summary_
-
-    Args:
-        conv (_type_): _description_
-        cellName (_type_): _description_
-        outputDir (_type_): _description_
-        techInfo (_type_): _description_
-        isUseMaxCellWidth (bool): _description_
-
-    Dependency:
-        GetVddVssPinLefStr()
-        PinSpaceCnt_ADJ()
-        EdgeBasedPinCnt_ADJ()
-        RPACal()
-        PSObjCal()
-        MpoCnt()
-        CalM1TrackPG()
-        CalM2Resource()
-
-    Returns:
-        _type_: _description_
-    """  
     global Cell_metrics_map;
     gridWidth = ""
     insts = []
     metals = []
     vias = []
     extpins = []
-    Pin_filename = outputDir+"/RPACnt_v3.txt" # YW: this was RPACnt_v2.txt
+    Pin_filename = outputDir+"/RPACnt_v2.txt"
     if os.path.isfile(Pin_filename):
         print ("%s File exist"%Pin_filename)
-        f = open(Pin_filename, "a+") # YW: this was preventing file generation
+        f = open(Pin_filename, "a")
     else:
         print ("%s File not exist"%Pin_filename)
-        f = open(Pin_filename, "w+") # YW: this was preventing file generation
-    
+        f = open(Pin_filename, "w")
     f.write("%s\t"%cellName)
     print ("%s: "%cellName)
-
     for curLine in conv.split("\n"):
         #print (curLine)
         words = curLine.split(" ")
         #print (words)
         if words[0] == "TRACK":
             #techInfo.numCpp = int(words[1])/2 + 1
-            techInfo.numTrack = int(words[2])
-        elif words[0] == "COST":
-            techInfo.numCpp = int(int(words[1])/2)+1
-            numCPP = int(int(words[1])/2)+1
+            techInfo.cellRow = int(words[3])
+            techInfo.numTrack = int(words[2]) - 2 # Minus power and ground offset
+            #print("numTrack: %d\n"%techInfo.numTrack )
+        elif words[0] == "COST": # Get COST_SIZE_X
+            techInfo.numCpp = int(int(words[2])/2)+1
+            numCPP = int(int(words[2])/2)+1
         elif words[0] == "INST":
-            # adding Instance
-            insts.append(\
-                    Instance(
-                        idx=words[1], 
-                        lx=words[2], 
-                        ly=words[3],
-                        numFinger=words[4], 
-                        isFlip=words[5], 
-                        totalWidth=words[6], 
-                        unitWidth=words[7]
-                    )
-                )
+            insts.append( Instance(words[1], words[2], words[3], \
+                words[4], words[5], words[6], words[7]))
         elif words[0] == "METAL":
-            metals.append( 
-                          Metal(
-                            layer=words[1], 
-                            fromRow=words[2], 
-                            fromCol=words[3],
-                            toRow=words[4],
-                            toCol=words[5],
-                            netID=words[6])
-                          )
+            metals.append( Metal(words[1], words[2], words[3], \
+                words[4], words[5], words[6]) )
         elif words[0] == "VIA":
-            vias.append( Via(
-                              fromMetal=words[1], 
-                              toMetal=words[2], 
-                              x=words[3],
-                              y=words[4], 
-                              netID=words[5])
-                            )
+            vias.append( Via(words[1], words[2], words[3], words[4], words[5]) )
         elif words[0] == "EXTPIN":
             extpins.append( ExtPin(words[2], words[3], words[4], words[1], words[5], words[6]) )
 
@@ -595,10 +571,10 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
         via1Arr = [ via for via in vias if via.netID == extpin.netID and via.fromMetal == 3 ]
         metal2Arr = [ metal for metal in metals if metal.netID == extpin.netID and metal.layer == 4 ]
 
+        print("ext pin name: %s ext pin id: %d\n"%(extpin.pinName, extpin.netID))
         (M1_PinMpoCnt, M2_PinMpoCnt) = MpoCnt(extpin, extpins, metal1Arr, metal2Arr, metals)
         PinMpoCnt = M1_PinMpoCnt + M2_PinMpoCnt
         ExtPOCnt_Map[extpin.netID] = PinMpoCnt
-
         pinInfos.append(PinInfo(extpin.pinName, extpin.netID, \
             via0Arr, metal1Arr, via1Arr, metal2Arr, extpin.isInput, PinMpoCnt))
         #f.write("%s\t%d\t%d\t"%(extpin.pinName, M1_PinMpoCnt, M2_PinMpoCnt))
@@ -606,6 +582,7 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
             Min_PinMpoCnt = PinMpoCnt
         if PinMpoCnt > Max_PinMpoCnt:
             Max_PinMpoCnt = PinMpoCnt
+
         Avg_PinMpoCnt = Avg_PinMpoCnt + PinMpoCnt
         Num_Pins = Num_Pins + 1
         #Pin_space = PinSpaceCnt(extpin, extpins, metal1Arr, metal2Arr, metals)
@@ -629,9 +606,9 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
         if Pin_cost > Max_PinCost:
             Max_PinCost = Pin_cost
         Avg_PinCost = Avg_PinCost + Pin_cost
-        #print ("Cell: %s Pin: %s Net ID: %s EdgePinCost: %f ColPinSpace: %f\n"%(cellName, extpin.pinName, extpin.netID, Pin_cost, Pin_space))   
+        #print ("Cell: %s Pin: %s Net ID: %s EdgePinCost: %f ColPinSpace: %f\n"%(cellName, extpin.pinName, extpin.netID, Pin_cost, Pin_space))    
 
-    Avg_PinMpoCnt = float(Avg_PinMpoCnt)/float(Num_Pins)
+    Avg_PinMpoCnt = float(Avg_PinMpoCnt)/float(Num_Pins);
     #if Num_PinSpace != 0:
     #   Avg_PinSpace = float(Avg_PinSpace)/float(Num_PinSpace);
     #   Avg_PinCost = float(Avg_PinCost)/float(Num_PinSpace);
@@ -650,7 +627,6 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
         via1Arr = [ via for via in vias if via.netID == extpin.netID and via.fromMetal == 3 ]
         metal2Arr = [ metal for metal in metals if metal.netID == extpin.netID and metal.layer == 4 ]
         RPA_Map[extpin.pinName] = RPACal(extpin, extpins, metal1Arr, metal2Arr, metals, ExtPOCnt_Map)
-        print("Cell %s, Pin Name: %s, RPA: %f\n"%(cellName, extpin.pinName, RPA_Map[extpin.pinName]))
         Avg_RPA = Avg_RPA + RPA_Map[extpin.pinName]
         if RPA_Map[extpin.pinName] < Min_RPA:
             Min_RPA = RPA_Map[extpin.pinName]
@@ -661,12 +637,12 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     f.write("%s\t%f\t%s\t%f\t%s\t%f\n"%("Avg RPA", Avg_RPA, "Min RPA", Min_RPA, "PS Obj: ", PS_Obj))
     f.close()
     M1Track_file = outputDir+"M1_PG_TrackCnt.txt"
-    f = open(M1Track_file, "a+") # YW: this was not generated
+    f = open(M1Track_file, "a")
     M1Track_PGUsed = CalM1TrackPG(metals)
     f.write("%s\t%f\n"%(cellName, M1Track_PGUsed))
     f.close()
     M2Resource_file = outputDir+"M2_ResourceCnt.txt"
-    f = open(M2Resource_file, "a+") # YW: this was not generated
+    f = open(M2Resource_file, "a")
     (M2Track_use, M2Resource_Used) = CalM2Resource(metals)
     f.write("%s\t%f\n"%(cellName, M2Resource_Used))
     f.close()
@@ -680,11 +656,14 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     if key not in Cell_metrics_map.keys():
         Cell_metrics_map[key] = cell_metric  
     # OBS handling
+    localconnectObs = [metal for metal in metals if metal.layer <= 1]
+    metal0Obs = [ metal for metal in metals if metal.layer == 2 ]
     via0Obs = [ via for via in vias if via.netID not in pinNetId and via.fromMetal == 2 ] 
     metal1Obs = [ metal for metal in metals if metal.netID not in pinNetId and metal.layer == 3 ]
     via1Obs = [ via for via in vias if via.netID not in pinNetId and via.fromMetal == 3 ]
     metal2Obs = [ metal for metal in metals if metal.netID not in pinNetId and metal.layer == 4 ]
-    obsInfo = ObsInfo(via0Obs, metal1Obs, via1Obs, metal2Obs)
+    # obsInfo(enLI, enM0, localconnectObs, metal0s, via0s, metal1s, via1s, metal2s)
+    obsInfo = ObsInfo(techInfo.enLI, techInfo.enM0, localconnectObs, metal0Obs, via0Obs, metal1Obs, via1Obs, metal2Obs)
 
     #if len(metal1Obs) + len(via1Obs) + len(metal2Obs) > 0:
     #  print(" there is obs" )
@@ -696,11 +675,6 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
         techInfo.cellWidth
 
     print("CellName: ", cellName, "cellWidth: ", cellWidth)
-
-    lefLayerStr = ""
-    # TODO print Metal layer info
-    for metal in metals:
-        lefLayerStr += metal.getLefLayerStr(techInfo)
 
     lefStr = ""
     lefStr += "MACRO %s\n" % (cellName)
@@ -719,7 +693,6 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     lefStr += obsInfo.getLefStr(techInfo)
     lefStr += "END %s\n\n" % (cellName)  
 
-    # return lefLayerStr + lefStr
     return lefStr
 
 def GetMpoFlag(inpStr):
@@ -793,22 +766,6 @@ def MpoCnt(extpin, extpins, metal1Arr, metal2Arr, metals):
     return (M1_PinMpoCnt, M2_PinMpoCnt)
 
 def RPACal(extpin, extpins, metal1Arr, metal2Arr, metals, POCnt_Map):
-    """_summary_
-
-    Args:
-        extpin (_type_): _description_
-        extpins (_type_): _description_
-        metal1Arr (_type_): _description_
-        metal2Arr (_type_): _description_
-        metals (_type_): _description_
-        POCnt_Map (_type_): _description_
-
-    Dependency:
-        IsPO()
-
-    Returns:
-        _type_: _description_
-    """  
     cur_netID = extpin.netID
     M1_PinMpoCnt = 0
     M2_PinMpoCnt = 0
@@ -855,7 +812,7 @@ def RPACal(extpin, extpins, metal1Arr, metal2Arr, metals, POCnt_Map):
     POCnt = POCnt_Map[cur_netID]
     #print("POcnt: %f UPA: %f\t"%(POCnt, UPA))
     RPA = POCnt - UPA
-    #print("RPA: %f\n"%(RPA))
+    print("Net ID: %d RPA: %f\n"%(cur_netID, RPA))
     return RPA
 
 def IsPO (extpin, extpins, metals, Row, Col):
@@ -908,7 +865,6 @@ def IsExtPin (netID, extpins):
     return 0
 
 # ICCAD version: PS 1 objective cnt
-# NOT USED CURRENTLY
 def PinSpaceCnt(extpin, extpins, metal1Arr, metal2Arr, metals):
     cur_netID = extpin.netID
     M1_PinMpoCnt = 0
@@ -941,35 +897,36 @@ def PinSpaceCnt(extpin, extpins, metal1Arr, metal2Arr, metals):
         return -1
 
 # ICCAD version PS1 objective
-def _PinSpaceCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
-    cur_netID = extpin.netID
-    M1_PinMpoCnt = 0
-    M2_PinMpoCnt = 0
-    # Design Rule Definition
-    MAR = 2
-    EOL = 0
-    # Check Metal1 first
-    total_pin_space = 0
-    num_pin_shape = 0
-    for metal_pin in metal1Arr:
-        pin_space = 2
-        for metal in metals:
-            #found = -1
-            # Check Metal1: Since gear ratio is 1:1, with MAR=1, EOL=0 it is accesible
-            if metal.netID != cur_netID and metal.layer == 3 and abs(metal.toCol - metal_pin.toCol) <= MAR+EOL \
-               and IsExtPin(metal.netID, extpins) == 1:
-                #found = 1
-                at_least_one_pin = 1
-                # Overlapping
-                if (metal.toRow >= metal_pin.toRow and metal.fromRow <= metal_pin.toRow) or \
-                  (metal.toRow >= metal_pin.fromRow and metal.fromRow <= metal_pin.fromRow):
-                    pin_space = pin_space-1
-                #pin_space = vspace + hspace
+#def PinSpaceCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
+#  cur_netID = extpin.netID
+#  M1_PinMpoCnt = 0
+#  M2_PinMpoCnt = 0
+#  # Design Rule Definition
+#  MAR = 2
+#  EOL = 0
+#  # Check Metal1 first
+#  total_pin_space = 0
+#  num_pin_shape = 0
+#  for metal_pin in metal1Arr:
+#      pin_space = 2
+#      for metal in metals:
+#         #found = -1
+#         # Check Metal1: Since gear ratio is 1:1, with MAR=1, EOL=0 it is accesible
+#         if metal.netID != cur_netID and metal.layer == 3 and abs(metal.toCol - metal_pin.toCol) <= MAR+EOL \
+#            and IsExtPin(metal.netID, extpins) == 1:
+#            #found = 1
+#            at_least_one_pin = 1
+#            # Overlapping
+#            if (metal.toRow >= metal_pin.toRow and metal.fromRow <= metal_pin.toRow) or \
+#              (metal.toRow >= metal_pin.fromRow and metal.fromRow <= metal_pin.fromRow):
+#               pin_space = pin_space-1
+#            #pin_space = vspace + hspace
+#      
+#      total_pin_space = total_pin_space + pin_space
+#      num_pin_shape = num_pin_shape + 1
+#  
+#  return float(total_pin_space/num_pin_shape)
 
-        total_pin_space = total_pin_space + pin_space
-        num_pin_shape = num_pin_shape + 1
-
-    return float(total_pin_space/num_pin_shape)
 
 # TVLSI version PS1 objective-> when col == 0 -> always set to 0
 # This is maximize objective: PS_obj
@@ -1054,6 +1011,7 @@ def EdgeBasedPinCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
 
     return total_pin_cost
 
+
 def CalM1TrackPG(metals):
     used_track = 0
     for metal in metals:
@@ -1119,54 +1077,46 @@ def DumpCellMetrics(outputDir):
 # Main codes
 # ==============================================================================================================
 # v4.0: Adjutst M2 left and right extension 0.009um; It is still consistent with the FEOL grid-based assumption.
+# v5.0: Adjutst getLy, getUy, PowerRail creation for multi-height standard cell structure.
+# v6.0: Add extract LI to obstacles for multi-height DTCO.
 # ==============================================================================================================
-def main():
-    global fileList
-    global inputDir
-    global outputDir
-    inputDir = "./input_cfet_exp1_pinfix/"
-    outputDir = "./output_cfet/"
+inputDir = "./input_cfet_exp1_pinfix/"
+outputDir = "./output_cfet/"
 
-    if len(sys.argv) <= 1:
-        print("Usage:   python generate.py <metalPitch> <cppWidth> <siteName> <mpoMode>\n\n")
-        print("         metalPitch: int")
-        print("         cppWidth  : int")
-        print("         siteName  : string")
-        print("         mpoMode   : 2/3/MAX\n")
-        print("Example: ")
-        print("         python generate_cfet.py 24 42 coreSite 2")
-        sys.exit(1)
+if len(sys.argv) <= 1:
+    print("Usage:   python generate.py <metalPitch> <cppWidth> <siteName> <mpoMode> <inputdir> <outputdir> <enLI> <enM0>\n\n")
+    print("         metalPitch: int")
+    print("         cppWidth  : int")
+    print("         siteName  : string")
+    print("         mpoMode   : 2/3/MAX\n")
+    print("         enLI   : extract LI to V0 layer\n")
+    print("         enM0   : extract M0 layer\n")
+    print("Example: ")
+    print("         python generate_cfet.py 24 42 coreSite 2")
+    sys.exit(1)
 
-    if len(sys.argv) >= 6:
-        inputDir = sys.argv[5]
-        outputDir = sys.argv[6]
+enLI = 1
+enM0 = 0
+if len(sys.argv) >= 6:
+    inputDir = sys.argv[5]
+    outputDir = sys.argv[6]
+if len(sys.argv) >= 8:
+    enLI = int(sys.argv[7])
+    enM0 = int(sys.argv[8])
+print(inputDir)
+print(outputDir)
+fileList = os.listdir(inputDir)
 
-    print("inputDir:", inputDir)
-    print("outputDir:", outputDir)
+# flip flag
+y_flip = 1 # For align VDD at bottom in the lef file
+x_flip = 0
+tech = TechInfo(0, 0, 1, sys.argv[1], sys.argv[2], sys.argv[3], BprMode.NONE, \
+        GetMpoFlag(sys.argv[4]), y_flip, x_flip, enLI, enM0)
 
-    fileList = os.listdir(inputDir)
-    tech = TechInfo(
-      numCpp=0, 
-      numTrack=0, 
-      metalPitch=sys.argv[1], 
-      cppWidth=sys.argv[2], 
-      siteName=sys.argv[3], 
-      bprFlag=BprMode.NONE,
-      mpoFlag=GetMpoFlag(sys.argv[4])
-        )
+# generate six lef files
+for bprFlag in [BprMode.BPR]:
+    tech.bprFlag = bprFlag
+    GenerateLef(fileList, outputDir, tech)
 
-    # YW: Dependency Graph
-    # GenerateLef => GetMacroLefStr => GetVddVssPinLefStr
-    # PinSpaceCnt => IsExtPin
-    # RPACal => IsExtPin
-    # PinSpaceCnt_ADJ => IsExtPin
-    # EdgeBasedPinCnt_ADJ => IsExtPin
-    for bprFlag in [BprMode.BPR]:
-        tech.bprFlag = bprFlag
-        GenerateLef(fileList, outputDir, tech)
-
-    # dump cell metrics
-    DumpCellMetrics(outputDir)
-
-if __name__ == "__main__":
-    main()
+# dump cell metrics
+DumpCellMetrics(outputDir)

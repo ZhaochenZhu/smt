@@ -21,7 +21,7 @@ my $infile      = "";
 
 #my @StdCells = ("BUFx2_ASAP7_75t_R", "BUFx3_ASAP7_75t_R", "OAI22x1_ASAP7_75t_R", "TIELOx1_ASAP7_75t_R", "TIEHIx1_ASAP7_75t_R", "XOR2x1_ASAP7_75t_R", "NAND2x1_ASAP7_75t_R", "NOR2x1_ASAP7_75t_R", "XNOR2x1_ASAP7_75t_R", "XOR2x1_ASAP7_75t_R", "OAI22x1_ASAP7_75t_R", "AOI22x1_ASAP7_75t_R", "DFFHQNx1_ASAP7_75t_R", "FAx1_ASAP7_75t_R");
 #my @StdCells = ("INVx1_ASAP7_75t_R", "INVx2_ASAP7_75t_R", "INVx4_ASAP7_75t_R", "INVx8_ASAP7_75t_R", "BUFx2_ASAP7_75t_R", "BUFx3_ASAP7_75t_R", "BUFx4_ASAP7_75t_R", "BUFx8_ASAP7_75t_R", "MUX2x1_ASAP7_75t_R", "OAI22x1_ASAP7_75t_R", "AND2x1_ASAP7_75t_R", "AND2x2_ASAP7_75t_R", "AND3x1_ASAP7_75t_R", "AND3x2_ASAP7_75t_R", "NAND2x1_ASAP7_75t_R", "NAND2x2_ASAP7_75t_R", "NAND3x1_ASAP7_75t_R", "NAND3x2_ASAP7_75t_R", "NAND4x1_ASAP7_75t_R", "NAND4x2_ASAP7_75t_R", "NOR2x1_ASAP7_75t_R", "NOR2x2_ASAP7_75t_R", "NOR3x1_ASAP7_75t_R", "NOR3x2_ASAP7_75t_R", "NOR4x1_ASAP7_75t_R", "NOR4x2_ASAP7_75t_R", "XNOR2x1_ASAP7_75t_R", "XOR2x1_ASAP7_75t_R", "OAI21x1_ASAP7_75t_R", "OAI21x2_ASAP7_75t_R", "OAI22x1_ASAP7_75t_R", "OAI22x2_ASAP7_75t_R", "AOI22x1_ASAP7_75t_R", "AOI21x1_ASAP7_75t_R", "AOI21x2_ASAP7_75t_R", "AOI22x1_ASAP7_75t_R", "AOI22x2_ASAP7_75t_R", "AND2x1_ASAP7_75t_R", "OR2x2_ASAP7_75t_R", "OR2x1_ASAP7_75t_R", "OR3x1_ASAP7_75t_R", "OR3x2_ASAP7_75t_R");
-my @StdCells = ("INVx1_ASAP7_75t_R");
+my @StdCells = ( "XOR2x1_ASAP7_75t_R");
 foreach my $cell (@StdCells) {
 	print ("cell: $cell\n");
 }
@@ -92,8 +92,6 @@ if (!-e "$infile") {
 ### Output Directory Creation, please see the following reference:
 system "mkdir -p $outdir";
 
-
-
 my $designName = "";
 
 my @ext_pins = ();
@@ -118,6 +116,7 @@ my $sizeNMOS = 0;
 my $sizePMOS = 0;
 
 #my $numPTrackH = 3;
+# is it because the fin channels? Refer to Mark's thesis Fig 1.7
 my $numPTrackH = 2; # 2 nanosheets per FET
 my $numTrackH = 6; # 4 routing tracks; 2 power/ground tracks
 #my $numClip = 2; # PMOS and NMOS region in FinFET
@@ -126,6 +125,7 @@ my $subckt_flag = 0;
 ### Read Inputfile and Build Data Structure
 open (my $in, "$infile");
 my $outfile     = "$outdir/".(split /\./, (split /\//, $infile)[$#_])[0].".pinLayout";
+
 while (<$in>) {
     my $line = $_;
     chomp($line);

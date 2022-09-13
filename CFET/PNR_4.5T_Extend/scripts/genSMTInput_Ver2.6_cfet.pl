@@ -5628,7 +5628,7 @@ for my $col (0 .. $numTrackV-1){
 											my $vEdge_Instidx = $h_inst_idx{$pins[$h_pinId_idx{$virtualEdges[$vEdgeIndex][2]}][6]};	
 											print "vEdgeIdx: $vEdge_Instidx/ pin: $virtualEdges[$vEdgeIndex][2]\n";
 											if ( $vEdge_Instidx > $lastIdxPMOS ) {
-												print ("NMOS!!!\n");
+												# print ("NMOS!!!\n");
 												if ($stack_struct_flag eq "PN") {
 													if ($toRow == 0) {
 														# NMOS virtual pin in case 1 ( 4 routing tracks case )  
@@ -5653,7 +5653,7 @@ for my $col (0 .. $numTrackV-1){
 												}
 											}
 											if ( $vEdge_Instidx <= $lastIdxPMOS ) {
-												print ("PMOS!!!\n");
+												# print ("PMOS!!!\n");
 												if ($stack_struct_flag eq "PN") {
 													if ($toRow == 3) {
 														# PMOS virtual pin in case 1 ( 4 routing tracks case )
@@ -6011,7 +6011,7 @@ for my $col (0 .. $numTrackV-1){
 											my $vEdge_Instidx = $h_inst_idx{$pins[$h_pinId_idx{$virtualEdges[$vEdgeIndex][2]}][6]};	
 											print "vEdgeIdx: $vEdge_Instidx/ pin: $virtualEdges[$vEdgeIndex][2]\n";
 											if ( $vEdge_Instidx > $lastIdxPMOS ) {
-												print ("NMOS!!!\n");
+												# print ("NMOS!!!\n");
 												if ($stack_struct_flag eq "PN") {
 													if ($toRow < $numTrackH-3) {
 														# NMOS virtual pin in case 1 ( 4 routing tracks case )  
@@ -6058,7 +6058,7 @@ for my $col (0 .. $numTrackV-1){
 												}
 											}
 											if ( $vEdge_Instidx <= $lastIdxPMOS ) {
-												print ("PMOS!!!\n");
+												# print ("PMOS!!!\n");
 												if ($stack_struct_flag eq "PN") {
 													if ($toRow >= $numTrackH-4) {
 														# PMOS virtual pin in case 1 ( 4 routing tracks case )
@@ -6332,7 +6332,7 @@ for my $col (0 .. $numTrackV-1){
 					my $vEdge_Instidx = $h_inst_idx{$pins[$h_pinId_idx{$virtualEdges[$vEdgeIndex][2]}][6]};	
 					print "vEdgeIdx: $vEdge_Instidx/ pin: $virtualEdges[$vEdgeIndex][2]\n";
 					if ( $vEdge_Instidx > $lastIdxPMOS ) {
-						print ("NMOS!!!\n");
+						# print ("NMOS!!!\n");
 						push(@tmp_cond_NMOS, $tmp_vname);
 						setVar($tmp_vname, 2);
 						if (($dummy_g_struct_flag eq "Split" && $col%2 == 0) || ( $dummy_sd_struct_flag eq "Split" && $col%2 == 1 )) {
@@ -6345,7 +6345,7 @@ for my $col (0 .. $numTrackV-1){
 						}
 					}
 					if ( $vEdge_Instidx <= $lastIdxPMOS ) {
-						print ("PMOS!!!\n");
+						# print ("PMOS!!!\n");
 						push(@tmp_cond_PMOS, $tmp_vname);
 						setVar($tmp_vname, 2);
 					}
@@ -6497,7 +6497,7 @@ for my $col (0 .. $numTrackV-1){
 					my $vEdge_Instidx = $h_inst_idx{$pins[$h_pinId_idx{$virtualEdges[$vEdgeIndex][2]}][6]};	
 					print "vEdgeIdx: $vEdge_Instidx/ pin: $virtualEdges[$vEdgeIndex][2]\n";
 					if ( $vEdge_Instidx <= $lastIdxPMOS ) {
-						print ("PMOS!!!\n");
+						# print ("PMOS!!!\n");
 						push(@tmp_cond_PMOS, $tmp_vname);
 						setVar($tmp_vname, 2);
 						if (($dummy_g_struct_flag eq "Split" && $col%2 == 0) || ( $dummy_sd_struct_flag eq "Split" && $col%2 == 1 )) {
@@ -6510,7 +6510,7 @@ for my $col (0 .. $numTrackV-1){
 						}
 					}
 					if ( $vEdge_Instidx > $lastIdxPMOS ) {
-						print ("NMOS!!!\n");
+						# print ("NMOS!!!\n");
 						push(@tmp_cond_NMOS, $tmp_vname);
 						setVar($tmp_vname, 2);
 					}
