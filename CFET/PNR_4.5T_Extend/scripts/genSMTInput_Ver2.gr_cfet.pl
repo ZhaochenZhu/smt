@@ -4,7 +4,7 @@ use strict 'vars'; # generates a compile-time error if you access a variable wit
 use strict 'refs'; # generates a runtime error if you use symbolic references
 use strict 'subs'; # compile-time error if you try to use a bareword identifier in an improper way.
 use Data::Dumper;
-use warnings;
+# use warnings;
 use POSIX;
 
 use Cwd;
@@ -316,16 +316,21 @@ sub getAvailableNumFinger{
 	return @numFinger;
 }
 sub combine {
+	# take a list and number as arg
 	my ($list, $n) = @_;
+	# raise an exception if n > len(list)
 	die "Insufficient list members" if $n > @$list;
-
+	# vectorization:  if n <= 1, each item instantiate a list
 	return map [$_], @$list if $n <= 1;
 
 	my @comb;
 
 	for (my $i = 0; $i+$n <= @$list; ++$i){
 		my $val = $list->[$i];
+		print("val: $val\n");
 		my @rest = @$list[$i+1..$#$list];
+		print("rest\n");
+		print(Dumper\@rest);
 		push @comb, [$val, @$_] for combine_sub \@rest, $n-1;
 		if($i==0){
 			last;
@@ -2720,18 +2725,21 @@ if($BS_Parameter == 1){
 	print $out ";Removing Symmetric Placement Cases\n";
 	my $numPMOS = $lastIdxPMOS + 1;
 	my $numNMOS = $numInstance - $numPMOS;
-	print "numPMOS : $numPMOS  numNMOS : $numNMOS\n";
+	print "numPMOS : $numPMOS  numNMOS : $numNMOS  numInstance: $numInstance\n";
 	my @arr_pmos = ();
 	my @arr_nmos = ();
-
+	# PMOS indices
 	for my $i (0 .. $lastIdxPMOS){
 		push(@arr_pmos, $i);
 	}
+	print("arr_pmos: $numPMOS\n");
+	print(Dumper\@arr_pmos);
+	# NMOS indices
 	for my $i ($lastIdxPMOS + 1 .. $numInstance - 1) {
 		push(@arr_nmos, $i);
 	}
-
-
+	print("arr_nmos: $numNMOS\n");
+	print(Dumper\@arr_nmos);
 	my @comb_l_pmos = ();
 	my @comb_l_nmos = ();
 	my @comb_c_pmos = ();
@@ -2740,7 +2748,10 @@ if($BS_Parameter == 1){
 	my @comb_r_nmos = ();
 
 	if($numPMOS % 2 == 0){
+		# if even number of PMOS
 		my @tmp_comb_l_pmos = combine([@arr_pmos],$numPMOS/2);
+		print("tmp_comb_l_pmos\n");
+		print(Dumper\@tmp_comb_l_pmos);
 		for my $i(0 .. $#tmp_comb_l_pmos){
 			my @tmp_comb = ();
 			my $isComb = 0;
@@ -2764,6 +2775,7 @@ if($BS_Parameter == 1){
 		}
 	}
 	else{
+		# if odd number of PMOS
 		for my $m(0 .. $numPMOS - 1){
 			@arr_pmos = ();
 			for my $i (0 .. $lastIdxPMOS){
@@ -2772,6 +2784,9 @@ if($BS_Parameter == 1){
 				}
 			}
 			my @tmp_comb_l_pmos = combine([@arr_pmos],($numPMOS-1)/2);
+			print("tmp_comb_l_pmos\n");
+			print(Dumper\@arr_pmos);
+			print(Dumper\@tmp_comb_l_pmos);
 			for my $i(0 .. $#tmp_comb_l_pmos){
 				my @tmp_comb = ();
 				my $isComb = 0;
@@ -2796,6 +2811,7 @@ if($BS_Parameter == 1){
 			}
 		}
 	}
+
 	if($numNMOS % 2 == 0){
 		my @tmp_comb_l_nmos = combine([@arr_nmos],$numNMOS/2);
 		for my $i(0 .. $#tmp_comb_l_nmos){
@@ -2942,22 +2958,27 @@ my %h_g_inst = ();
 #		cnt("c", 0);
 #	}
 #}
+
 # Mark: Only m<=3 is expected? We might have larger width
 # PMOS
 for my $i (0 .. $lastIdxPMOS) {
 	my @tmp_finger = ();
 	@tmp_finger = getAvailableNumFinger($inst[$i][2], $trackEachPRow);
+	# Instance width /
 	if($inst[$i][2]/$tmp_finger[0] == 1){
+		# if width/finger == 1
 		push(@g_p_h1, $i);
 		$w_p_h1+=2*$tmp_finger[0];
 		$h_g_inst{$i} = 1;
 	}
 	elsif($inst[$i][2]/$tmp_finger[0] == 2){
+		# if width/finger == 2
 		push(@g_p_h2, $i);
 		$w_p_h2+=2*$tmp_finger[0];
 		$h_g_inst{$i} = 2;
 	}
 	elsif($inst[$i][2]/$tmp_finger[0] == 3){
+		# if width/finger == 3
 		push(@g_p_h3, $i);
 		$w_p_h3+=2*$tmp_finger[0];
 		$h_g_inst{$i} = 3;
@@ -4064,6 +4085,10 @@ if ($stack_struct_flag eq "PN") {
 		}	
 	}
 }
+print("PMOS_forbidden:\n");
+print(Dumper\%PMOS_forbidden);
+print("NMOS_forbidden:\n");
+print(Dumper\%NMOS_forbidden);
 
 ### Extensible Boundary variables
 # In Extensible Case , Metal binary variables
@@ -4088,41 +4113,137 @@ else{
 	}
 	for my $frontVertex (0 .. $#frontCorners) {
 		my $metal = (split /[a-z]/, $frontCorners[$frontVertex])[1];
-		if ($metal % 2 == 1) {	# only on even metal 2, 4, 6...
+		if ($metal % 2 == 1) {	# only on odd metal 1, 3, 5...
 #				print $out "(assert (= M_FrontEnd_$frontCorners[$frontVertex] false))\n";
 			$h_assign{"M_FrontEnd_$frontCorners[$frontVertex]"} = 0;
 		}
 	}
 	for my $backVertex (0 .. $#backCorners) {
 		my $metal = (split /[a-z]/, $backCorners[$backVertex])[1];
-		if ($metal % 2 == 1) {	# only on even metal 2, 4, 6...
+		if ($metal % 2 == 1) {	# only on odd metal 1, 3, 5...
 #				print $out "(assert (= M_$backCorners[$backVertex]_BackEnd false))\n";
 			$h_assign{"M_$backCorners[$backVertex]_BackEnd"} = 0;
 		}
 	}
 }
-
+print("Extensible Boundary variables:\n");
 print(Dumper \%h_assign);
 
+print("********************Commodity Flow binary variables:\n");
+### Commodity Flow binary variables
+for my $netIndex (0 .. $#nets) {
+	for my $commodityIndex (0 .. $nets[$netIndex][4]-1) {
+		for my $vEdgeIndex (0 .. $#virtualEdges) {
+			# YW data structure: $virtualEdges
+			#		[
+			#           [vEindex],
+			#           [vertex],
+			#           [pinSON/SIN],
+			#           [edge_COST]
+			#       ];
+			my $tmp_vname = "";
+			if ($virtualEdges[$vEdgeIndex][2] =~ /^pin/) { # source
+				if ($virtualEdges[$vEdgeIndex][2] eq $nets[$netIndex][3]){
+					if($pins[$h_pinId_idx{$nets[$netIndex][3]}][7] eq "G"){ ### GATE Pin
+						my $col = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3]; # 1:metal 2:row 3:col
+						if($col % 2 == 0){
+							# print("skipping even col, $col\n");
+						}
+						else{
+							# print("added new net\n");
+#							print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+							print(
+								"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+							);
+							$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
+						}
+					}
+					else{
+						my $col = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3]; # 1:metal 2:row 3:col
+						if($col % 2 == 1){
+							# print("skipping odd col, $col\n");
+						}
+						else{
+							# print("added new net\n");
+#							print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+							print(
+								"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+							);
+							$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
+						}
+					}
+				}
+				elsif ($virtualEdges[$vEdgeIndex][2] eq $nets[$netIndex][5][$commodityIndex]){
+					if(!($virtualEdges[$vEdgeIndex][2] eq $keySON)){
+						if($pins[$h_pinId_idx{$nets[$netIndex][5][$commodityIndex]}][7] eq "G"){ ### GATE Pin
+							my $col = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3]; # 1:metal 2:row 3:col
+							if($col % 2 == 0){
+								# print("skipping even col, $col\n");
+							}
+							else{
+								# print("added new net\n");
+#								print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+								print(
+									"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+								);
+								$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
+							}
+						}
+						else{
+							my $col = (split /[a-z]/, $virtualEdges[$vEdgeIndex][1])[3]; # 1:metal 2:row 3:col
+							if($col % 2 == 1){
+								# print("skipping odd col, $col\n");
+							}
+							else{
+								# print("added new net\n");
+#								print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+								print(
+									"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+								);
+								$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+# print("Commodity Flow binary variables:\n");
+# print(Dumper \%h_assign);
+
+print("********************Localization:\n");
 if($Local_Parameter == 1){
 	$str.=";Localization.\n\n";
 	$str.=";Localization for Adjacent Pins in the same multifinger TRs.\n\n";
 	for my $netIndex (0 .. $#nets) {
 		for my $commodityIndex (0 .. $nets[$netIndex][4]-1) {
+			# index of source pin instance
 			my $inst_pin_s = $h_inst_idx{$pins[$h_pinId_idx{$nets[$netIndex][3]}][6]};
+			# index of sink pin instance
 			my $inst_pin_t = $h_inst_idx{$pins[$h_pinId_idx{$nets[$netIndex][5][$commodityIndex]}][6]};
+			# source_ofNet
 			my $pidx_s = $nets[$netIndex][3];
+			# for curr commodity in sinks_inNet
 			my $pidx_t = $nets[$netIndex][5][$commodityIndex];
+			# num of fingers from source pin instance
 			my @finger_s = getAvailableNumFinger($inst[$inst_pin_s][2], $trackEachPRow);
+			# num of fingers from sink pin instance
 			my @finger_t = getAvailableNumFinger($inst[$inst_pin_t][2], $trackEachPRow);
+			# source width = finger*2
 			my $w_s = $finger_s[0]*2;
+			# sink width = finger*2
 			my $w_t = $finger_t[0]*2;
 			# length of encoding bits should be max numTrackV across all layers
 			my $len = length(sprintf("%b", $max_numTrackV))+4;
-			$pidx_s =~ s/pin\S+_(\d+)/\1/g;
+			# NOT USED
+			$pidx_s =~ s/pin\S+_(\d+)/\1/g; # =~ applying a regular expression to a scalar.
 			$pidx_t =~ s/pin\S+_(\d+)/\1/g;
-			my %h_edge = (); # will always be empty
+			my %h_edge = (); # will always be empty ???
+
+			# if curr commodity in sinks_inNet is not an SON
 			if($nets[$netIndex][5][$commodityIndex] ne $keySON){
+				# if source pin and sink pin are the same
 				if($inst_pin_s == $inst_pin_t){
 					# only from metal 3 to 4
 
@@ -4142,12 +4263,18 @@ if($Local_Parameter == 1){
 
 							for my $i (0 .. $#{$edge_in{$vName}}){ # incoming
 								if(!exists($h_edge{"$udEdges[$edge_in{$vName}[$i]][1]_$vName"})){
+									print(
+										"N$nets[$netIndex][1]\_C$commodityIndex\_E_$udEdges[$edge_in{$vName}[$i]][1]_$vName\n"
+									);
 									$h_assign{"N$nets[$netIndex][1]\_C$commodityIndex\_E_$udEdges[$edge_in{$vName}[$i]][1]_$vName"} = 0;
 								}
 							}
 
 							for my $i (0 .. $#{$edge_out{$vName}}){ # incoming
 								if(!exists($h_edge{"$vName\_$udEdges[$edge_in{$vName}[$i]][1]"})){
+									print(
+										"N$nets[$netIndex][1]\_C$commodityIndex\_E_$vName\_$udEdges[$edge_out{$vName}[$i]][2]\n"
+									);
 									$h_assign{"N$nets[$netIndex][1]\_C$commodityIndex\_E_$vName\_$udEdges[$edge_out{$vName}[$i]][2]"} = 0;
 								}
 
@@ -4160,5 +4287,5 @@ if($Local_Parameter == 1){
 	}
 }
 
-print("Localization:\n");
-print(Dumper \%h_assign);
+# print("Localization:\n");
+# print(Dumper \%h_assign);
