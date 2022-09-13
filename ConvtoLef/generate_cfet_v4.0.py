@@ -101,7 +101,6 @@ class ExtPin:
     def dump(self):
         print("ExtPin layer: %d, (%d, %d) - ID: %d: %s, isInput: %d" % (self.layer, self.x, self.y, self.netID, self.pinName, self.isInput))
 
-
 class BprMode(Enum):
     """
     Power Rail Location
@@ -150,6 +149,7 @@ class TechInfo:
         self.numFin = self.numTrack/2
 
         # only updates maxCellWidth when isMaxCellWidthUpdate is true
+        # this is not used
         if isMaxCellWidthUpdate:
             self.maxCellWidth = max(self.maxCellWidth, self.cellWidth)
 
@@ -248,8 +248,7 @@ class TechInfo:
     def getLibraryName(self):
         return "%dT_%dF_%dCPP_%dMP_%s_%s_%s" \
             % (self.realTrack, self.numFin, self.cppWidth, self.metalPitch, \
-            self.getMpoStr(), self.getDesignRuleStr(), self.getBprStr()) 
-
+            self.getMpoStr(), self.getDesignRuleStr(), self.getBprStr())
 
 class PinInfo:
     def __init__(self, name, netID, via0s, metal1s, via1s, metal2s, isInput, PinMpoCnt):
@@ -334,7 +333,6 @@ class ObsInfo:
         retStr += "  END\n"
         return retStr
 
-
 def GetVddVssPinLefStr(techInfo):
     """_summary_
 
@@ -410,7 +408,6 @@ def GetVddVssPinLefStr(techInfo):
         lefStr += "    END\n"
         lefStr += "  END VSS\n"
     return lefStr
-
 
 def GenerateLef(inputFileList, outputDir, techInfo):
     """_summary_
@@ -506,13 +503,14 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     metals = []
     vias = []
     extpins = []
-    Pin_filename = outputDir+"/RPACnt_v2.txt"
+    Pin_filename = outputDir+"/RPACnt_v3.txt" # YW: this was RPACnt_v2.txt
     if os.path.isfile(Pin_filename):
         print ("%s File exist"%Pin_filename)
-        f = open(Pin_filename, "a")
+        f = open(Pin_filename, "a+") # YW: this was preventing file generation
     else:
         print ("%s File not exist"%Pin_filename)
-        f = open(Pin_filename, "w")
+        f = open(Pin_filename, "w+") # YW: this was preventing file generation
+    
     f.write("%s\t"%cellName)
     print ("%s: "%cellName)
 
@@ -528,21 +526,21 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
             numCPP = int(int(words[1])/2)+1
         elif words[0] == "INST":
             # adding Instance
-            insts.append( \
-                Instance(
-                    idx=words[1], 
-                lx=words[2], 
-                ly=words[3],
-                numFinger=words[4], 
-                isFlip=words[5], 
-                totalWidth=words[6], 
-                unitWidth=words[7]
-                )
+            insts.append(\
+                    Instance(
+                        idx=words[1], 
+                        lx=words[2], 
+                        ly=words[3],
+                        numFinger=words[4], 
+                        isFlip=words[5], 
+                        totalWidth=words[6], 
+                        unitWidth=words[7]
+                    )
                 )
         elif words[0] == "METAL":
             metals.append( 
                           Metal(
-                              layer=words[1], 
+                            layer=words[1], 
                             fromRow=words[2], 
                             fromCol=words[3],
                             toRow=words[4],
@@ -589,7 +587,7 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     Min_PinCost = 100
     Max_PinCost = 0
     Num_Pins = 0
-    Num_PinSpace = 0
+    Num_PinSpace = 0num
     for extpin in extpins:
         pinNetId.add(extpin.netID)
         via0Arr = [ via for via in vias if via.netID == extpin.netID and via.fromMetal == 2 ]
@@ -663,12 +661,12 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     f.write("%s\t%f\t%s\t%f\t%s\t%f\n"%("Avg RPA", Avg_RPA, "Min RPA", Min_RPA, "PS Obj: ", PS_Obj))
     f.close()
     M1Track_file = outputDir+"M1_PG_TrackCnt.txt"
-    f = open(M1Track_file, "a")
+    f = open(M1Track_file, "a+") # YW: this was not generated
     M1Track_PGUsed = CalM1TrackPG(metals)
     f.write("%s\t%f\n"%(cellName, M1Track_PGUsed))
     f.close()
     M2Resource_file = outputDir+"M2_ResourceCnt.txt"
-    f = open(M2Resource_file, "a")
+    f = open(M2Resource_file, "a+") # YW: this was not generated
     (M2Track_use, M2Resource_Used) = CalM2Resource(metals)
     f.write("%s\t%f\n"%(cellName, M2Resource_Used))
     f.close()
@@ -704,10 +702,6 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     for metal in metals:
         lefLayerStr += metal.getLefLayerStr(techInfo)
 
-    # print("***********************")
-    # print(lefLayerStr)
-    # print("***********************")
-
     lefStr = ""
     lefStr += "MACRO %s\n" % (cellName)
     lefStr += "  CLASS CORE ;\n"
@@ -725,7 +719,8 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
     lefStr += obsInfo.getLefStr(techInfo)
     lefStr += "END %s\n\n" % (cellName)  
 
-    return lefLayerStr + lefStr
+    # return lefLayerStr + lefStr
+    return lefStr
 
 def GetMpoFlag(inpStr):
     if inpStr == "2":
@@ -1059,7 +1054,6 @@ def EdgeBasedPinCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
 
     return total_pin_cost
 
-
 def CalM1TrackPG(metals):
     used_track = 0
     for metal in metals:
@@ -1147,11 +1141,12 @@ def main():
         inputDir = sys.argv[5]
         outputDir = sys.argv[6]
 
-    print(inputDir)
-    print(outputDir)
+    print("inputDir:", inputDir)
+    print("outputDir:", outputDir)
+
     fileList = os.listdir(inputDir)
     tech = TechInfo(
-        numCpp=0, 
+      numCpp=0, 
       numTrack=0, 
       metalPitch=sys.argv[1], 
       cppWidth=sys.argv[2], 
@@ -1160,7 +1155,7 @@ def main():
       mpoFlag=GetMpoFlag(sys.argv[4])
         )
 
-    # generate six lef files
+    # YW: Dependency Graph
     # GenerateLef => GetMacroLefStr => GetVddVssPinLefStr
     # PinSpaceCnt => IsExtPin
     # RPACal => IsExtPin

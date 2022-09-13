@@ -100,9 +100,19 @@ print(Dumper\%h_RTrack);
 #         };
 
 # Maximum routing track index
+# change @mapTrack[0][1] = #RoutingTracks - 1
 for my $i(0 .. $mapTrack[0][1]){
 	$h_mapTrack{$i} = 1;
 }
+# $VAR1 = {
+#           '3' => 1,
+#           '1' => 1,
+#           '2' => 1,
+#           '0' => 1
+#         };
+
+print("h_mapTrack\n");
+print(Dumper\%h_mapTrack);
 
 for my $i(0 .. $#numContact){
 	$h_numCon{$numContact[$i][0]} = $numContact[$i][1] - 1;
@@ -191,6 +201,7 @@ print "a     SMT-LIB2.0 File:    $outfile\n";
 my $enc_cfc = 40;
 my $enc_euv_1 = 40;
 my $enc_euv_2 = 40;
+exit;
 
 ### Variable Declarations
 my $width = 0;						# arbitrary 

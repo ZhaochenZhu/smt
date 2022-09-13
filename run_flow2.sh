@@ -37,7 +37,7 @@ done
 
 # Step 3
 echo "********** Generating Z3 Solution **********"
-echo "run_smt_cfet_forLef3.sh list_cfet_all"
+echo "run_smt_cfet_forLef3-.sh list_cfet_all"
 cd $workdir
 ./run_smt_cfet_forLef3.sh list_cfet_all
 cd -

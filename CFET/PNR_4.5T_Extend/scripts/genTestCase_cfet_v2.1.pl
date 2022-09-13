@@ -92,8 +92,6 @@ if (!-e "$infile") {
 ### Output Directory Creation, please see the following reference:
 system "mkdir -p $outdir";
 
-
-
 my $designName = "";
 
 my @ext_pins = ();
@@ -118,14 +116,16 @@ my $sizeNMOS = 0;
 my $sizePMOS = 0;
 
 #my $numPTrackH = 3;
-my $numPTrackH = 2; # 2 nanosheets per FET
+# is it because the fin channels? Refer to Mark's thesis Fig 1.7
+my $numPTrackH = 4; # 2 nanosheets per FET
 my $numTrackH = 6; # 4 routing tracks; 2 power/ground tracks
 #my $numClip = 2; # PMOS and NMOS region in FinFET
-my $numClip = 1; # PMOS and NMOS region for CFET
+my $numClip = 2; # PMOS and NMOS region for CFET
 my $subckt_flag = 0;
 ### Read Inputfile and Build Data Structure
 open (my $in, "$infile");
 my $outfile     = "$outdir/".(split /\./, (split /\//, $infile)[$#_])[0].".pinLayout";
+
 while (<$in>) {
     my $line = $_;
     chomp($line);
