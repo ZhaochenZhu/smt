@@ -117,7 +117,7 @@ my $sizePMOS = 0;
 
 #my $numPTrackH = 3;
 # is it because the fin channels? Refer to Mark's thesis Fig 1.7
-my $numPTrackH = 4; # 2 nanosheets per FET
+my $numPTrackH = 2; # 2 nanosheets per FET
 my $numTrackH = 6; # 4 routing tracks; 2 power/ground tracks
 #my $numClip = 2; # PMOS and NMOS region in FinFET
 my $numClip = 1; # PMOS and NMOS region for CFET
