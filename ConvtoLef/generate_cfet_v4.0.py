@@ -346,7 +346,9 @@ def GetVddVssPinLefStr(techInfo):
         return "" 
 
     lefStr = ""
-
+    # Define pin VDD with SHAPE ABUTMENT because there are no obstructions
+    # to block a straight connection to the pad rings. The port without
+    # CLASS CORE is used for completing the I/O power ring.
     vddPrefix = ""
     vddPrefix += "  PIN VDD\n"
     vddPrefix += "    DIRECTION INOUT ;\n"
@@ -379,7 +381,7 @@ def GetVddVssPinLefStr(techInfo):
         techInfo.cellWidth / 1000.0, 
         (rectWidth) / 1000.0)
 
-    # METAL1 and BPR have M1
+    # METAL1 or BPR have M1
     if techInfo.bprFlag == BprMode.METAL1 or techInfo.bprFlag == BprMode.BPR:
         lefStr += vddPrefix
         lefStr += "      LAYER M0 ;\n"
@@ -520,7 +522,7 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
         #print (words)
         if words[0] == "TRACK":
             #techInfo.numCpp = int(words[1])/2 + 1
-            techInfo.numTrack = int(words[2])
+            techInfo.numTrack = int(words[2]) # numTrackH
         elif words[0] == "COST":
             techInfo.numCpp = int(int(words[1])/2)+1
             numCPP = int(int(words[1])/2)+1
