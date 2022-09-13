@@ -3481,6 +3481,7 @@ else{
 print("Extensible Boundary variables:\n");
 print(Dumper \%h_assign);
 
+print("********************Commodity Flow binary variables:\n");
 ### Commodity Flow binary variables
 for my $netIndex (0 .. $#nets) {
 	for my $commodityIndex (0 .. $nets[$netIndex][4]-1) {
@@ -3503,6 +3504,9 @@ for my $netIndex (0 .. $#nets) {
 						else{
 							# print("added new net\n");
 #							print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+							print(
+								"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+							);
 							$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
 						}
 					}
@@ -3514,6 +3518,9 @@ for my $netIndex (0 .. $#nets) {
 						else{
 							# print("added new net\n");
 #							print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+							print(
+								"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+							);
 							$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
 						}
 					}
@@ -3528,6 +3535,9 @@ for my $netIndex (0 .. $#nets) {
 							else{
 								# print("added new net\n");
 #								print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+								print(
+									"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+								);
 								$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
 							}
 						}
@@ -3539,6 +3549,9 @@ for my $netIndex (0 .. $#nets) {
 							else{
 								# print("added new net\n");
 #								print $out "(assert (= N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2] false))\n";
+								print(
+									"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]\n"
+								);
 								$h_assign{"N$nets[$netIndex][1]_C$commodityIndex\_E_$virtualEdges[$vEdgeIndex][1]_$virtualEdges[$vEdgeIndex][2]"} = 0;
 							}
 						}
@@ -3548,9 +3561,10 @@ for my $netIndex (0 .. $#nets) {
 		}
 	}
 }
-print("Commodity Flow binary variables:\n");
-print(Dumper \%h_assign);
+# print("Commodity Flow binary variables:\n");
+# print(Dumper \%h_assign);
 
+print("********************Localization:\n");
 if($Local_Parameter == 1){
 	$str.=";Localization.\n\n";
 	$str.=";Localization for Adjacent Pins in the same multifinger TRs.\n\n";
@@ -3580,11 +3594,17 @@ if($Local_Parameter == 1){
 								print("vName: $vName\n");
 								for my $i (0 .. $#{$edge_in{$vName}}){ # incoming
 									if(!exists($h_edge{"$udEdges[$edge_in{$vName}[$i]][1]_$vName"})){
+										print(
+											"N$nets[$netIndex][1]\_C$commodityIndex\_E_$udEdges[$edge_in{$vName}[$i]][1]_$vName\n"
+										);
 										$h_assign{"N$nets[$netIndex][1]\_C$commodityIndex\_E_$udEdges[$edge_in{$vName}[$i]][1]_$vName"} = 0;
 									}
 								}
 								for my $i (0 .. $#{$edge_out{$vName}}){ # incoming
 									if(!exists($h_edge{"$vName\_$udEdges[$edge_in{$vName}[$i]][1]"})){
+										print(
+											"N$nets[$netIndex][1]\_C$commodityIndex\_E_$vName\_$udEdges[$edge_out{$vName}[$i]][2]\n"
+										);
 										$h_assign{"N$nets[$netIndex][1]\_C$commodityIndex\_E_$vName\_$udEdges[$edge_out{$vName}[$i]][2]"} = 0;
 									}
 								}
@@ -3593,11 +3613,11 @@ if($Local_Parameter == 1){
 					}
 				}
 			}
-			print("h_edge:\n");
-			print(Dumper \%h_edge);
+			# print("h_edge:\n");
+			# print(Dumper \%h_edge);
 		}
 	}
 }
 
-print("Localization:\n");
-print(Dumper \%h_assign);
+# print("Localization:\n");
+# print(Dumper \%h_assign);
