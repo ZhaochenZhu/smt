@@ -254,10 +254,10 @@ class PinInfo:
     def __init__(self, name, netID, via0s, metal1s, via1s, metal2s, isInput, PinMpoCnt):
         self.name = name
         self.netID = int(netID)
-        self.via0s = via0s
-        self.metal1s = metal1s
-        self.via1s = via1s
-        self.metal2s = metal2s
+        self.via0s = via0s          
+        self.metal1s = metal1s      # metal segments on M1
+        self.via1s = via1s          
+        self.metal2s = metal2s      # metal segments on M2
         self.isInput = isInput
         self.PinMpoCnt = PinMpoCnt
 
@@ -346,9 +346,7 @@ def GetVddVssPinLefStr(techInfo):
         return "" 
 
     lefStr = ""
-    # Define pin VDD with SHAPE ABUTMENT because there are no obstructions
-    # to block a straight connection to the pad rings. The port without
-    # CLASS CORE is used for completing the I/O power ring.
+
     vddPrefix = ""
     vddPrefix += "  PIN VDD\n"
     vddPrefix += "    DIRECTION INOUT ;\n"
@@ -381,7 +379,7 @@ def GetVddVssPinLefStr(techInfo):
         techInfo.cellWidth / 1000.0, 
         (rectWidth) / 1000.0)
 
-    # METAL1 or BPR have M1
+    # METAL1 and BPR have M1
     if techInfo.bprFlag == BprMode.METAL1 or techInfo.bprFlag == BprMode.BPR:
         lefStr += vddPrefix
         lefStr += "      LAYER M0 ;\n"
@@ -522,7 +520,7 @@ def GetMacroLefStr(conv, cellName, outputDir, techInfo, isUseMaxCellWidth):
         #print (words)
         if words[0] == "TRACK":
             #techInfo.numCpp = int(words[1])/2 + 1
-            techInfo.numTrack = int(words[2]) # numTrackH
+            techInfo.numTrack = int(words[2])
         elif words[0] == "COST":
             techInfo.numCpp = int(int(words[1])/2)+1
             numCPP = int(int(words[1])/2)+1
@@ -795,22 +793,6 @@ def MpoCnt(extpin, extpins, metal1Arr, metal2Arr, metals):
     return (M1_PinMpoCnt, M2_PinMpoCnt)
 
 def RPACal(extpin, extpins, metal1Arr, metal2Arr, metals, POCnt_Map):
-    """_summary_
-
-    Args:
-        extpin (_type_): _description_
-        extpins (_type_): _description_
-        metal1Arr (_type_): _description_
-        metal2Arr (_type_): _description_
-        metals (_type_): _description_
-        POCnt_Map (_type_): _description_
-
-    Dependency:
-        IsPO()
-
-    Returns:
-        _type_: _description_
-    """  
     cur_netID = extpin.netID
     M1_PinMpoCnt = 0
     M2_PinMpoCnt = 0
@@ -1014,7 +996,7 @@ def PinSpaceCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
     return PS_obj
     #return float(total_pin_space/num_pin_shape)
 
-# TVLSI version PS3 objective-> when col == 0 
+# TVLSI version PS3 objective-> when col == 0
 # This is Minimize objective
 def EdgeBasedPinCnt_ADJ(extpin, extpins, metal1Arr, metal2Arr, metals):
     cur_netID = extpin.netID
